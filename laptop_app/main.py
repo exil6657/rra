@@ -13,7 +13,7 @@ from ui.main_window import MainWindow
 ROOT=Path(__file__).parent
 class Disclaimer(QDialog):
  def __init__(self):
-  super().__init__();self.setWindowTitle('Before You Continue');self.setMinimumSize(620,410);l=QVBoxLayout(self);l.addWidget(QLabel('⚠️',styleSheet='font-size:54px;color:#FF8C00;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('Before You Continue',styleSheet='font-size:30px;font-weight:800;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('This app monitors Discord through a Discord application bot that you control. Discord user tokens are passwords: do not share, paste, or automate them. Discord self-bots are prohibited by Discord’s Terms. This program never supports user tokens or attempts to make activity look human. Use only channels where the bot has permission to read messages.'));self.check=QCheckBox('I understand. I will use a bot token and keep credentials private.');l.addWidget(self.check);b=QPushButton('I Understand — Continue Setup');b.setObjectName('success');b.setEnabled(False);self.check.toggled.connect(b.setEnabled);b.clicked.connect(self.accept);l.addWidget(b);e=QPushButton('Exit');e.clicked.connect(self.reject);l.addWidget(e)
+  super().__init__();self.setWindowTitle('Before You Continue');self.setMinimumSize(620,410);l=QVBoxLayout(self);l.addWidget(QLabel('⚠️',styleSheet='font-size:54px;color:#FF8C00;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('Before You Continue',styleSheet='font-size:30px;font-weight:800;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('This app can inspect only a screen rectangle that you explicitly select. It does not use a Discord account token, connect to Discord, send messages, or upload screenshots. OCR and image matching can produce false positives or miss visual changes, so keep the crop narrow and test your trigger before relying on it.'));self.check=QCheckBox('I understand that this is a local visual detector and I will configure it responsibly.');l.addWidget(self.check);b=QPushButton('I Understand — Continue Setup');b.setObjectName('success');b.setEnabled(False);self.check.toggled.connect(b.setEnabled);b.clicked.connect(self.accept);l.addWidget(b);e=QPushButton('Exit');e.clicked.connect(self.reject);l.addWidget(e)
 class Setup(QWizard):
  def __init__(self,c):
   super().__init__();self.c=c;self.setWindowTitle('Rust Raid Alarm Setup');
@@ -24,7 +24,7 @@ class Setup(QWizard):
    for label,name in fields: w=QLineEdit();w.setObjectName(name);w.setEchoMode(QLineEdit.EchoMode.Password if name=='token' else QLineEdit.EchoMode.Normal);f.addRow(label,w)
    self.addPage(p)
  def accept(self):
-  p=self.page(0);self.c['firebase']['database_url']=self.page(1).findChild(QLineEdit,'url').text().strip();self.c['setup_complete']=True;save(self.c);super().accept()
+  self.c['firebase']['database_url']=self.page(1).findChild(QLineEdit,'url').text().strip();self.c['setup_complete']=True;save(self.c);super().accept()
 def main():
  logging.basicConfig(level=logging.INFO,handlers=[RotatingFileHandler(ROOT/'logs/app.log',maxBytes=1_000_000,backupCount=3),logging.StreamHandler()]);app=QApplication([]);app.setStyleSheet((ROOT/'ui/styles/global.qss').read_text());c=load()
  if not c['disclaimer_accepted']:
