@@ -7,7 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.rustraid.model.AppSettings
-@Composable fun SettingsScreen(settings:AppSettings,onUpdate:(Map<String,Any>)->Unit,onBatteryExemption:()->Unit,onFullScreenPermission:()->Unit){
+@Composable fun SettingsScreen(settings:AppSettings,onUpdate:(Map<String,Any>)->Unit,onBatteryExemption:()->Unit,onFullScreenPermission:()->Unit,onUnlink:()->Unit){
  var quietStart by remember(settings.quietHoursStart){mutableStateOf(settings.quietHoursStart)};var quietEnd by remember(settings.quietHoursEnd){mutableStateOf(settings.quietHoursEnd)};var silence by remember(settings.autoSilenceMinutes){mutableFloatStateOf(settings.autoSilenceMinutes.toFloat())}
  Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(14.dp)){
   Text("Settings",style=MaterialTheme.typography.headlineMedium)
@@ -18,7 +18,7 @@ import com.rustraid.model.AppSettings
   SettingSwitch("Screen flash",settings.screenFlash){onUpdate(mapOf("screen_flash" to it))};SettingSwitch("Vibration",settings.vibration){onUpdate(mapOf("vibration" to it))};SettingSwitch("Quiet hours",settings.quietHoursEnabled){onUpdate(mapOf("quiet_hours_enabled" to it))}
   if(settings.quietHoursEnabled){Text("Quiet hours use 24-hour HH:MM format.");OutlinedTextField(value=quietStart,onValueChange={quietStart=it},label={Text("Start")},singleLine=true);OutlinedTextField(value=quietEnd,onValueChange={quietEnd=it},label={Text("End")},singleLine=true);Button(onClick={onUpdate(mapOf("quiet_hours_start" to quietStart,"quiet_hours_end" to quietEnd))}){Text("Save quiet-hours schedule")}}
   SettingSwitch("AMOLED black theme",settings.amoledBlack){onUpdate(mapOf("amoled_black" to it))}
-  Text("Connection",style=MaterialTheme.typography.titleMedium);Text("Settings are synchronized through Firebase.");Button(onClick=onBatteryExemption){Text("Exempt from battery saver")};Button(onClick=onFullScreenPermission){Text("Allow full-screen wake alarms")}
+  Text("Connection",style=MaterialTheme.typography.titleMedium);Text("Settings are synchronized through Firebase.");Button(onClick=onBatteryExemption){Text("Exempt from battery saver")};Button(onClick=onFullScreenPermission){Text("Allow full-screen wake alarms")};OutlinedButton(onClick=onUnlink){Text("Unlink this phone")}
  }
 }
 @Composable private fun TargetChip(label:String,value:String,current:String,onUpdate:(Map<String,Any>)->Unit){FilterChip(selected=current==value,onClick={onUpdate(mapOf("device_target" to value))},label={Text(label)})}

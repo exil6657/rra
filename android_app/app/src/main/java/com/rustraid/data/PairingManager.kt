@@ -26,5 +26,10 @@ class PairingManager(private val context:Context){
   }.addOnFailureListener{onResult(Result.failure(it))}
  }
  suspend fun confirmLinked(){context.pairingStore.edit{it.remove(pendingSecret)}}
+ suspend fun requestUnlink(info:PairingInfo,onResult:(Result<Unit>)->Unit){
+  if(!info.linked){onResult(Result.success(Unit));return}
+  val uid=FirebaseAuth.getInstance().currentUser?.uid?:run{onResult(Result.failure(IllegalStateException("Firebase authentication unavailable.")));return}
+  FirebaseDatabase.getInstance().getReference("unlink_requests").child(info.laptopId).child(info.phoneId).setValue(mapOf("auth_uid" to uid,"requested_at" to System.currentTimeMillis())).addOnSuccessListener { mainHandler.post{onResult(Result.success(Unit))} }.addOnFailureListener{mainHandler.post{onResult(Result.failure(it))}}
+ }
  suspend fun unlink(){context.pairingStore.edit{it.clear()}}
 }

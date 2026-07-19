@@ -24,10 +24,28 @@
           ".read": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
         },
         "app_meta": {
-          "paired_phone_id": { ".read": "auth != null" },
-          "phone_last_seen": { ".write": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid" },
-          "phone_fcm_token": { ".read": false, ".write": false },
-          "paired_auth_uid": { ".read": false, ".write": false }
+          "paired_phone_id": {
+            ".read": "auth != null"
+          },
+          "phone_last_seen": {
+            ".write": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
+          },
+          "phone_fcm_token": {
+            ".read": false,
+            ".write": false
+          },
+          "paired_auth_uid": {
+            ".read": false,
+            ".write": false
+          }
+        }
+      }
+    },
+    "unlink_requests": {
+      "$laptop_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
         }
       }
     }
