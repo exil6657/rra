@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import QApplication,QDialog,QVBoxLayout,QLabel,QCheckBox,QPushButton,QWizard,QWizardPage,QLineEdit,QFormLayout,QSystemTrayIcon,QMenu
+from PyQt6.QtWidgets import QApplication,QDialog,QVBoxLayout,QLabel,QCheckBox,QPushButton,QWizard,QWizardPage,QLineEdit,QFormLayout,QSystemTrayIcon,QMenu,QMessageBox
 from core.config import load,save,update
 from core.firebase_sync import FirebaseSync
 from core.cooldown_manager import CooldownManager
@@ -18,14 +18,20 @@ class Disclaimer(QDialog):
   super().__init__();self.setWindowTitle('Before You Continue');self.setMinimumSize(620,410);l=QVBoxLayout(self);l.addWidget(QLabel('⚠️',styleSheet='font-size:54px;color:#FF8C00;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('Before You Continue',styleSheet='font-size:30px;font-weight:800;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('This app inspects only a screen rectangle that you explicitly select. It does not use a Discord account token, connect to Discord, send messages, or upload screenshots. OCR and image matching can produce false positives or miss visual changes, so keep the crop narrow and test your trigger before relying on it.'));self.check=QCheckBox('I understand that this is a local visual detector and I will configure it responsibly.');l.addWidget(self.check);b=QPushButton('I Understand — Continue Setup');b.setObjectName('success');b.setEnabled(False);self.check.toggled.connect(b.setEnabled);b.clicked.connect(self.accept);l.addWidget(b);e=QPushButton('Exit');e.clicked.connect(self.reject);l.addWidget(e)
 class Setup(QWizard):
  def __init__(self,c):
-  super().__init__();self.c=c;self.setWindowTitle('Rust Raid Alarm Setup')
-  for title,fields in [('Screen monitor', []),('Firebase (optional)', [('Database URL','url')]),('Ready',[])]:
-   p=QWizardPage();p.setTitle(title);f=QFormLayout(p)
-   if title=='Screen monitor':p.setSubTitle('After setup, choose a local screen rectangle and visual/text trigger in Settings → Screen Monitor.')
-   if title=='Firebase (optional)':p.setSubTitle('Paste a Realtime Database URL now; credentials can be added in Settings.')
-   for label,name in fields:w=QLineEdit();w.setObjectName(name);f.addRow(label,w)
-   self.addPage(p)
- def accept(self):self.c['firebase']['database_url']=self.page(1).findChild(QLineEdit,'url').text().strip();self.c['setup_complete']=True;save(self.c);super().accept()
+  super().__init__();self.c=c;self.region=c['screen_monitor']['region'];self.setWindowTitle('Rust Raid Alarm Setup')
+  monitor=QWizardPage();monitor.setTitle('Screen monitor');monitor.setSubTitle('Select the exact visible banner/notification area and enter text expected when the alert is present. You can refine OCR/template settings later.')
+  form=QFormLayout(monitor);self.trigger=QLineEdit(c['screen_monitor']['trigger_text']);self.trigger.setPlaceholderText('Example: your display name or @username');self.region_label=QLabel(self.describe_region());select=QPushButton('Select screen rectangle');select.clicked.connect(self.pick_region);form.addRow('Trigger phrase',self.trigger);form.addRow('Selected region',self.region_label);form.addRow('',select);self.addPage(monitor)
+  firebase=QWizardPage();firebase.setTitle('Firebase (optional)');firebase.setSubTitle('Paste a Realtime Database URL now; service-account credentials can be added later in Settings.');firebase_form=QFormLayout(firebase);self.url=QLineEdit(c['firebase']['database_url']);firebase_form.addRow('Database URL',self.url);self.addPage(firebase)
+  ready=QWizardPage();ready.setTitle('Ready');ready.setSubTitle('Finish to launch the dashboard. Run a local monitor test from Settings before relying on alerts.');self.addPage(ready)
+ def describe_region(self):return f"x={self.region['x']}, y={self.region['y']}, {self.region['width']}×{self.region['height']}" if self.region.get('width') else 'Not selected'
+ def pick_region(self):
+  from ui.screens.settings_discord import RegionPicker
+  self.picker=RegionPicker();self.picker.selected.connect(self.set_region)
+ def set_region(self,region):self.region=region;self.region_label.setText(self.describe_region())
+ def accept(self):
+  if not self.region.get('width') or not self.region.get('height') or not self.trigger.text().strip():
+   QMessageBox.warning(self,'Monitor setup required','Select a screen rectangle and enter a trigger phrase before continuing.');self.setCurrentId(0);return
+  self.c['screen_monitor'].update({'enabled':True,'region':self.region,'trigger_text':self.trigger.text().strip()});self.c['firebase']['database_url']=self.url.text().strip();self.c['setup_complete']=True;save(self.c);super().accept()
 def main():
  logging.basicConfig(level=logging.INFO,handlers=[RotatingFileHandler(ROOT/'logs/app.log',maxBytes=1_000_000,backupCount=3),logging.StreamHandler()])
  app=QApplication([]);app.setQuitOnLastWindowClosed(False);app.setStyleSheet((ROOT/'ui/styles/global.qss').read_text());c=load()
