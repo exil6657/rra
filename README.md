@@ -59,4 +59,4 @@ Phrase matching requires [Tesseract OCR](https://github.com/tesseract-ocr/tesser
 - **False alerts:** increase consecutive-frame confirmation, tighten the crop, or use a captured visual reference.
 - **Reference never matches:** recapture at the same display scaling, theme, and application zoom; image matching is sensitive to visual changes.
 - **Phone does not alert:** check Firebase credentials/rules, network connectivity, Android notifications, and foreground-service status.
-- **No laptop audio:** add licensed `defcon1.wav`, `tactical.wav`, or `stealth.wav` files in `laptop_app/assets/sounds/`.
+- **No laptop audio:** verify the bundled original WAV tones are present, or choose a custom audio file in Alarm Settings.
