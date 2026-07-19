@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import QWidget,QVBoxLayout,QPushButton,QLabel
 class Sidebar(QWidget):
     selected=pyqtSignal(str)
     def __init__(self):
-        super().__init__(); self.setFixedWidth(155); l=QVBoxLayout(self); l.setContentsMargins(10,20,10,20); logo=QLabel('RRA\nCOMMAND'); logo.setObjectName('title'); l.addWidget(logo)
-        for label,key in [('🏠  Dashboard','dashboard'),('⚙️  Settings','settings'),('📋  Activity Log','log'),('ℹ️  About','about')]:
-            b=QPushButton(label); b.clicked.connect(lambda _,k=key:self.selected.emit(k)); l.addWidget(b)
-        l.addStretch(); l.addWidget(QLabel('v1.0.0\nCOMPLIANT BOT MODE'))
+        super().__init__();self.setObjectName('sidebar');self.setFixedWidth(190);layout=QVBoxLayout(self);layout.setContentsMargins(14,24,14,18);layout.setSpacing(6)
+        brand=QLabel('RUST RAID');brand.setObjectName('brand');layout.addWidget(brand);sub=QLabel('// PC COMMAND LINK');sub.setObjectName('terminal');layout.addWidget(sub);layout.addSpacing(20)
+        for label,key in [('◈  DASHBOARD','dashboard'),('⚙  CONFIGURATION','settings'),('☷  ACTIVITY LOG','log'),('ⓘ  ABOUT','about')]:
+            button=QPushButton(label);button.setProperty('role','nav');button.clicked.connect(lambda _,route=key:self.selected.emit(route));layout.addWidget(button)
+        layout.addStretch();footer=QLabel('SECURE PAIR LINK\nLOCAL SCREEN MONITOR');footer.setObjectName('terminal');layout.addWidget(footer)
