@@ -2,6 +2,7 @@
 import json, os, sys, tempfile
 from pathlib import Path
 from copy import deepcopy
+from datetime import datetime
 SOURCE_ROOT=Path(__file__).resolve().parents[1]
 CONFIG_DIR=Path(os.getenv('APPDATA',str(Path.home()))) / 'RustRaidAlarm' if os.name == 'nt' or getattr(sys,'frozen',False) else SOURCE_ROOT
 PATH=CONFIG_DIR/'config.json'
@@ -16,6 +17,11 @@ def validate(data):
         if section in data and not isinstance(data[section],dict):raise ValueError(f'Configuration section {section!r} must be an object.')
     monitor=data.get('screen_monitor',{});region=monitor.get('region',{})
     if region and (not isinstance(region,dict) or any(not isinstance(region.get(key,0),int) for key in ('x','y','width','height'))):raise ValueError('Screen-monitor region coordinates must be integers.')
+    cooldown=data.get('cooldown',{})
+    for key in ('quiet_hours_start','quiet_hours_end'):
+        if key in cooldown:
+            try: datetime.strptime(cooldown[key],'%H:%M')
+            except (TypeError,ValueError): raise ValueError(f'{key} must use 24-hour HH:MM format.')
     alarm=data.get('alarm',{});volume=alarm.get('volume',100)
     if not isinstance(volume,int) or not 0<=volume<=100:raise ValueError('Alarm volume must be an integer from 0 to 100.')
     return merge(deepcopy(DEFAULT),deepcopy(data))

@@ -6,7 +6,10 @@ class CooldownManager(QObject):
         super().__init__(); self.settings=settings; self.until=None; self.timer=QTimer(self); self.timer.timeout.connect(self._tick); self.silence_timer=QTimer(self); self.silence_timer.setSingleShot(True); self.silence_timer.timeout.connect(self.auto_silence)
     def in_quiet_hours(self, now=None):
         if not self.settings['quiet_hours_enabled']: return False
-        now=(now or datetime.now()).time(); parse=lambda x: datetime.strptime(x,'%H:%M').time(); start,end=parse(self.settings['quiet_hours_start']),parse(self.settings['quiet_hours_end'])
+        now=(now or datetime.now()).time()
+        try:
+            parse=lambda value: datetime.strptime(value,'%H:%M').time(); start,end=parse(self.settings['quiet_hours_start']),parse(self.settings['quiet_hours_end'])
+        except (TypeError,ValueError): return False
         return start <= now < end if start <= end else now >= start or now < end
     def start(self, minutes=None):
         self.until=datetime.now()+timedelta(minutes=minutes or self.settings['duration_minutes']); self.timer.start(1000); self._tick()
