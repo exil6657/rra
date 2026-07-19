@@ -20,7 +20,7 @@ class AlarmService:Service(){
   val notice=NotificationCompat.Builder(this,if(silent)"silent" else "raid").setSmallIcon(android.R.drawable.ic_dialog_alert).setContentTitle(if(silent)"Raid alert" else "RAID ACTIVE — WAKE UP").setContentText(if(silent)"Tap to acknowledge" else "Alarm active; hold to acknowledge").setPriority(NotificationCompat.PRIORITY_MAX).setCategory(if(silent)NotificationCompat.CATEGORY_MESSAGE else NotificationCompat.CATEGORY_ALARM).setContentIntent(alarmIntent).addAction(0,"Acknowledge",ackIntent).apply{if(!silent)setFullScreenIntent(alarmIntent,true)}.build();startForeground(4,notice)
   if(!silent){val power=getSystemService(PowerManager::class.java);wakeLock=power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"RustRaid:wakeAlarm").apply{acquire(10*60*1000L)};val audio=getSystemService(AudioManager::class.java);if(volumeOverride)audio.setStreamVolume(AudioManager.STREAM_ALARM,audio.getStreamMaxVolume(AudioManager.STREAM_ALARM),0);val sound=when(soundPreset){
     "tactical"->MediaPlayer.create(this,R.raw.alarm_tactical)
-    "custom"->runCatching{val uri=runBlocking{PreferencesManager(this).getCustomSoundUri()};if(uri.isBlank())null else MediaPlayer.create(this,Uri.parse(uri))}.getOrNull()
+    "custom"->runCatching{val uri=runBlocking{PreferencesManager(this@AlarmService).getCustomSoundUri()};if(uri.isBlank())null else MediaPlayer.create(this,Uri.parse(uri))}.getOrNull()
     else->MediaPlayer.create(this,R.raw.alarm_defcon)
    }?:MediaPlayer.create(this,R.raw.alarm_defcon)
    player=sound.apply{isLooping=true;setAudioStreamType(AudioManager.STREAM_ALARM);start()};if(vibration)getSystemService(Vibrator::class.java).vibrate(VibrationEffect.createWaveform(longArrayOf(0,600,120,600,120,900),0))}

@@ -14,7 +14,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
   Text("Link this phone",style=MaterialTheme.typography.headlineMedium)
   Text(if(pending)"Pairing request sent. Keep this app open until the laptop accepts it." else "Scan the QR code shown by the laptop or enter its pairing code manually.")
   OutlinedTextField(value=code,onValueChange={code=it},label={Text("Pairing code")},singleLine=true,enabled=!pending)
-  Button(enabled=!pending,onClick={val options=GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build();GmsBarcodeScanning.getClient(context,options).startScan().addOnSuccessListener{barcode->code=barcode.rawValue?:""}.addOnFailureListener{}}){Text("Scan laptop QR code")}
+  Button(enabled=!pending,onClick={val options=GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build();GmsBarcodeScanning.getClient(context,options).startScan().addOnSuccessListener{barcode->code=barcode.rawValue?:""}.addOnFailureListener{}}){Text("Scan laptop QR code")}
   OutlinedTextField(value=name,onValueChange={name=it},label={Text("Phone name")},singleLine=true,enabled=!pending)
   Button(enabled=!pending&&code.isNotBlank(),onClick={onPair(code,name)}){Text("Request link")}
   if(pending)OutlinedButton(onClick=onCancel){Text("Cancel pairing request")}
