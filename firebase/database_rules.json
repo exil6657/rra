@@ -30,10 +30,18 @@
       "$pc_id": {
         "pairing_status": {
           "$phone_id": {
-            ".read": "auth != null && data.child('auth_uid').val() === auth.uid"
+            "accepted": {
+              ".read": "auth != null && root.child('laptops').child($pc_id).child('pairing_status').child($phone_id).child('auth_uid').val() === auth.uid"
+            },
+            "auth_uid": {
+              ".read": false
+            }
           }
         },
-        "authorized_uids": { ".read": false, ".write": false },
+        "authorized_uids": {
+          ".read": false,
+          ".write": false
+        },
         "phones": {
           "$phone_id": {
             "profile": {
@@ -43,7 +51,10 @@
             "heartbeat": {
               ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
             },
-            "identity": { ".read": false, ".write": false }
+            "identity": {
+              ".read": false,
+              ".write": false
+            }
           }
         },
         "raid_alarm": {
