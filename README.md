@@ -180,7 +180,8 @@ On Windows, runtime configuration is stored under `%APPDATA%\RustRaidAlarm\confi
    Or use Command Prompt with no Gradle installation required (the included wrapper downloads the matching Gradle version):
 
    ```bat
-   cd path	orandroid_app
+   cd path	o
+randroid_app
    build-apk.bat
    ```
 
@@ -262,7 +263,7 @@ Before relying on it, test all paths while awake.
    → both enter cooldown
    ```
 
-Then separately test laptop-only, phone-only, Silent mode, quiet hours, auto-silence, vibration off, and flash off.
+Then separately test laptop-only, phone-only, Silent mode, quiet hours, auto-silence, vibration off, flash off, maximum-volume override, DEFCON/Tactical sound selection, and custom phone audio.
 
 ## 9. Wake behavior
 
