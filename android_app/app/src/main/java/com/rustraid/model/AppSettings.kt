@@ -11,5 +11,6 @@ data class AppSettings(
  val quietHoursStart:String="23:00",
  val quietHoursEnd:String="07:00",
  val autoSilenceMinutes:Int=5,
- val amoledBlack:Boolean=false
+ val amoledBlack:Boolean=false,
+ val keepScreenOnDuringCooldown:Boolean=false
 )

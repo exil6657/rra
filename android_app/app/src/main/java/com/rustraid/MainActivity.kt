@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,6 +33,10 @@ class MainActivity:ComponentActivity(){
  @Composable private fun LinkedApp(pairing:PairingInfo,manager:PairingManager){
   val firebase=remember(pairing.laptopId){FirebaseRepository(pairing.laptopId)};val preferences=remember{PreferencesManager(applicationContext)};val customSoundUri by preferences.customSoundUri.collectAsState(initial="");var unlinkStatus by remember{mutableStateOf("")};var tab by remember{mutableIntStateOf(0)};var snapshot by remember{mutableStateOf(AlertSnapshot(AlertState.DISCONNECTED))};var entries by remember{mutableStateOf(emptyList<ActivityEntry>())};var settings by remember{mutableStateOf(AppSettings())}
   DisposableEffect(pairing.laptopId){listener=firebase.watchAlarm({snapshot=it},{snapshot=AlertSnapshot(AlertState.DISCONNECTED)});activityListener=firebase.watchActivity{entries=it};settingsListener=firebase.watchSettings{settings=it};firebase.heartbeat();onDispose{listener?.let(firebase::removeAlarmListener);activityListener?.let(firebase::removeActivityListener);settingsListener?.let(firebase::removeSettingsListener);listener=null;activityListener=null;settingsListener=null}}
+  DisposableEffect(snapshot.state,settings.keepScreenOnDuringCooldown){
+   if(snapshot.state==AlertState.COOLDOWN&&settings.keepScreenOnDuringCooldown)window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+   onDispose{window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
+  }
   RustRaidTheme(amoledBlack=settings.amoledBlack){Scaffold(bottomBar={NavigationBar{listOf("Dashboard","Log","Settings").forEachIndexed{i,n->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(n)})}}}){padding->Surface(modifier=androidx.compose.ui.Modifier.padding(padding)){when(tab){0->DashboardScreen(snapshot,{firebase.setMode(it)},{firebase.triggerLocalTest()});1->LogScreen(entries);else->SettingsScreen(settings,{firebase.updateSettings(it)},{requestBatteryExemption()},{requestFullScreenPermission()},{lifecycleScope.launch{manager.requestUnlink(pairing){result->if(result.isSuccess)lifecycleScope.launch{manager.unlink();stopService(Intent(this@MainActivity,FirebaseMonitorService::class.java))}else unlinkStatus=result.exceptionOrNull()?.message?:"Unlink request failed."}}},unlinkStatus,customSoundUri,{uri->lifecycleScope.launch{preferences.setCustomSoundUri(uri)}})}}}}}
  }
  private fun requestBatteryExemption(){if(Build.VERSION.SDK_INT>=23)startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName")))}
