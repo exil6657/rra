@@ -5,7 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); remote_phones=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._phones_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._phone_roster={}; self._last_ack_signature=None; self._connection_fingerprint=None
+        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._phones_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._phone_roster={}; self._phones_state={}; self._last_ack_signature=None; self._connection_fingerprint=None
     def is_configured(self):
         return bool(self.config.get('firebase',{}).get('service_account_json') and self.config.get('firebase',{}).get('database_url'))
     def is_connected(self):
@@ -90,8 +90,14 @@ class FirebaseSync(QObject):
         if not self.root or self._phones_listener: return
         def changed(event):
             try:
-                data=event.data if isinstance(event.data,dict) else {}
-                visible={phone_id:{'name':phone.get('identity',{}).get('name','Phone'),'enabled':phone.get('identity',{}).get('enabled',True),'heartbeat':phone.get('heartbeat'),'profile':phone.get('profile',{})} for phone_id,phone in data.items() if isinstance(phone,dict)}
+                if event.path in ('/', ''): self._phones_state=dict(event.data or {}) if isinstance(event.data,dict) else {}
+                else:
+                    target=self._phones_state; parts=[part for part in event.path.strip('/').split('/') if part]
+                    for part in parts[:-1]: target=target.setdefault(part,{})
+                    if parts:
+                        if event.data is None: target.pop(parts[-1],None)
+                        else: target[parts[-1]]=event.data
+                visible={phone_id:{'name':phone.get('identity',{}).get('name','Phone'),'enabled':phone.get('identity',{}).get('enabled',True),'heartbeat':phone.get('heartbeat'),'profile':phone.get('profile',{})} for phone_id,phone in self._phones_state.items() if isinstance(phone,dict)}
                 self._phone_roster=visible; self.remote_phones.emit(visible)
             except Exception: logging.getLogger(__name__).exception('Phone roster event processing failed')
         try: self._phones_listener=self.root.child('phones').listen(changed)
