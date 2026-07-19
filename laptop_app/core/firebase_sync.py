@@ -5,7 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None
+        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None
     def connect(self):
         try:
             import firebase_admin
@@ -15,7 +15,7 @@ class FirebaseSync(QObject):
             name='rustraid'
             try: app=firebase_admin.get_app(name)
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
-            self.app=app; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); self._start_unlink_listener(); return True
+            self.app=app; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); self._start_unlink_listener(); self._start_token_listener(); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
     def _start_listener(self):
@@ -115,6 +115,20 @@ class FirebaseSync(QObject):
             except Exception: logging.getLogger(__name__).exception('Unlink request processing failed')
         try: self._unlink_listener=requests.listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Unlink listener unavailable: %s',exc)
+    def _start_token_listener(self):
+        if not self.db or self._token_listener: return
+        laptop_id=self.config['pairing']['laptop_id']; requests=self.db.child('token_refresh_requests').child(laptop_id)
+        def changed(event):
+            try:
+                data=event.data if event.path in ('/', '') else {event.path.strip('/'):event.data}
+                if not isinstance(data,dict): return
+                current=self.config['pairing'].get('paired_phone_id',''); current_uid=self.root.child('app_meta/paired_auth_uid').get() if self.root else None
+                for request_id,request in data.items():
+                    if isinstance(request,dict) and request_id==current and request.get('auth_uid')==current_uid and request.get('fcm_token'):
+                        self.root.child('app_meta/phone_fcm_token').set(str(request['fcm_token'])); requests.child(request_id).delete()
+            except Exception: logging.getLogger(__name__).exception('FCM token refresh processing failed')
+        try: self._token_listener=requests.listen(changed)
+        except Exception as exc: logging.getLogger(__name__).warning('Token refresh listener unavailable: %s',exc)
     def pairing_details(self):
         pairing=self.config['pairing']; return {'laptop_id':pairing['laptop_id'],'pair_secret':pairing['pair_secret'],'paired_phone_id':pairing.get('paired_phone_id',''),'paired_phone_name':pairing.get('paired_phone_name','')}
     def unlink_phone(self):
@@ -123,7 +137,7 @@ class FirebaseSync(QObject):
         from core.config import save
         save(self.config); self.pairing_changed.emit({'linked':False})
     def close(self):
-        for listener_name in ('_listener','_settings_listener','_meta_listener','_pair_listener','_unlink_listener'):
+        for listener_name in ('_listener','_settings_listener','_meta_listener','_pair_listener','_unlink_listener','_token_listener'):
             listener=getattr(self,listener_name)
             if listener:
                 try: listener.close()

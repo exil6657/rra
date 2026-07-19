@@ -48,6 +48,14 @@
           ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
         }
       }
+    },
+    "token_refresh_requests": {
+      "$laptop_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+        }
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 private val Context.pairingStore by preferencesDataStore("rustraid_pairing")
@@ -26,6 +27,12 @@ class PairingManager(private val context:Context){
   }.addOnFailureListener{onResult(Result.failure(it))}
  }
  suspend fun confirmLinked(){context.pairingStore.edit{it.remove(pendingSecret)}}
+ fun refreshFcmToken(token:String){
+  kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+   val pairing=info.first();val uid=FirebaseAuth.getInstance().currentUser?.uid?:return@launch
+   if(pairing.linked)FirebaseDatabase.getInstance().getReference("token_refresh_requests").child(pairing.laptopId).child(pairing.phoneId).setValue(mapOf("auth_uid" to uid,"fcm_token" to token,"requested_at" to System.currentTimeMillis()))
+  }
+ }
  suspend fun requestUnlink(info:PairingInfo,onResult:(Result<Unit>)->Unit){
   if(!info.linked){onResult(Result.success(Unit));return}
   val uid=FirebaseAuth.getInstance().currentUser?.uid?:run{onResult(Result.failure(IllegalStateException("Firebase authentication unavailable.")));return}
