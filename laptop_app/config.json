@@ -38,7 +38,8 @@
   },
   "app": {
     "start_with_windows": false,
-    "start_minimized": false
+    "start_minimized": false,
+    "phone_alert_mode": "critical"
   },
   "activity": [],
   "screen_monitor": {

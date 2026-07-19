@@ -54,6 +54,7 @@ def main():
   alarm_keys=('device_target','active_preset','screen_flash','volume','tts_enabled')
   cooldown_map={'cooldown_duration_minutes':'duration_minutes','auto_silence_minutes':'auto_silence_minutes','quiet_hours_enabled':'quiet_hours_enabled','quiet_hours_start':'quiet_hours_start','quiet_hours_end':'quiet_hours_end'}
   changed=False
+  if 'alert_mode' in shared and c['app'].get('phone_alert_mode')!=shared['alert_mode']:c['app']['phone_alert_mode']=shared['alert_mode'];changed=True
   for key in alarm_keys:
    if key in shared and c['alarm'].get(key)!=shared[key]:c['alarm'][key]=shared[key];changed=True
   for remote,local in cooldown_map.items():
@@ -74,13 +75,13 @@ def main():
   if cooldown.remaining():
    event('Cooldown blocked screen trigger');return
   if alarm_active:return
-  remote=bool(data.get('remote'));triggered_at=data.get('triggered_at') or datetime.utcnow().isoformat()+'Z';target=data.get('target') or c['alarm']['device_target'];preset=c['alarm']['active_preset'];mode=data.get('mode') or ('silent' if cooldown.in_quiet_hours() or preset=='stealth' else 'critical')
+  remote=bool(data.get('remote'));triggered_at=data.get('triggered_at') or datetime.utcnow().isoformat()+'Z';target=data.get('target') or c['alarm']['device_target'];preset=c['alarm']['active_preset'];local_mode=data.get('mode') or ('silent' if cooldown.in_quiet_hours() or preset=='stealth' else 'critical');phone_mode='silent' if local_mode=='silent' else c['app'].get('phone_alert_mode','critical')
   # A phone-only remote event must not make the laptop alarm; each device respects the state target.
   if remote and target not in ('laptop','both'):return
-  alarm_active=True;engine.trigger(force_stealth=(mode=='silent'));cooldown.arm_auto_silence()
+  alarm_active=True;engine.trigger(force_stealth=(local_mode=='silent'));cooldown.arm_auto_silence()
   if not remote:
-   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':mode})
-   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',mode)
+   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':phone_mode})
+   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',phone_mode)
   display_state('raid');event(('Remote ' if remote else '')+'alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
   nonlocal alarm_active, remote_cooldown_until
