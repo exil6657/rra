@@ -1,13 +1,24 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
-    "raid_alarm": { ".validate": "newData.hasChildren(['alarm_active', 'acknowledged'])" },
-    "activity_log": { ".indexOn": ["timestamp"] },
-    "app_meta": {
-      "phone_fcm_token": {
-        ".read": false,
-        ".write": "auth != null"
+    ".read": false,
+    ".write": false,
+    "pair_requests": {
+      "$laptop_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+        }
+      }
+    },
+    "laptops": {
+      "$laptop_id": {
+        ".read": "auth != null && data.child('app_meta/paired_auth_uid').val() === auth.uid",
+        ".write": "auth != null && data.child('app_meta/paired_auth_uid').val() === auth.uid",
+        "app_meta": {
+          "paired_phone_id": { ".read": "auth != null" },
+          "phone_fcm_token": { ".read": false, ".write": false },
+          "paired_auth_uid": { ".read": false, ".write": false }
+        }
       }
     }
   }

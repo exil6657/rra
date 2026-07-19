@@ -84,13 +84,13 @@ class FirebaseSync(QObject):
                 if not isinstance(data,dict): return
                 for request_id,request in data.items():
                     if not isinstance(request,dict): continue
-                    secret=str(request.get('pair_secret','')); token=str(request.get('fcm_token','')); name=str(request.get('phone_name','Android phone'))
-                    if secret and token and secrets.compare_digest(secret,expected):
+                    secret=str(request.get('pair_secret','')); token=str(request.get('fcm_token','')); name=str(request.get('phone_name','Android phone')); auth_uid=str(request.get('auth_uid',''))
+                    if secret and token and auth_uid and secrets.compare_digest(secret,expected):
                         existing=self.config['pairing'].get('paired_phone_id','')
                         if existing and existing!=request_id:
                             # One-phone policy: ignore requests until the user explicitly unlinks.
                             continue
-                        self.root.child('app_meta').update({'phone_fcm_token':token,'phone_last_seen':datetime.now(timezone.utc).isoformat(),'paired_phone_name':name,'paired_phone_id':request_id})
+                        self.root.child('app_meta').update({'phone_fcm_token':token,'phone_last_seen':datetime.now(timezone.utc).isoformat(),'paired_phone_name':name,'paired_phone_id':request_id,'paired_auth_uid':auth_uid})
                         self.config['pairing'].update({'paired_phone_id':request_id,'paired_phone_name':name})
                         from core.config import save
                         save(self.config); requests.child(request_id).delete(); self.pairing_changed.emit({'linked':True,'phone_id':request_id,'phone_name':name})
