@@ -3,46 +3,15 @@
     ".read": false,
     ".write": false,
     "pair_requests": {
-      "$laptop_id": {
+      "$pc_id": {
         "$phone_id": {
           ".read": false,
           ".write": "auth != null && (newData.child('auth_uid').val() === auth.uid || (!newData.exists() && data.child('auth_uid').val() === auth.uid))"
         }
       }
     },
-    "laptops": {
-      "$laptop_id": {
-        "raid_alarm": {
-          ".read": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid",
-          ".write": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
-        },
-        "settings": {
-          ".read": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid",
-          ".write": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
-        },
-        "activity_log": {
-          ".read": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
-        },
-        "app_meta": {
-          "paired_phone_id": {
-            ".read": "auth != null"
-          },
-          "phone_last_seen": {
-            ".write": "auth != null && root.child('laptops').child($laptop_id).child('app_meta/paired_auth_uid').val() === auth.uid"
-          },
-          "phone_fcm_token": {
-            ".read": false,
-            ".write": false
-          },
-          "paired_auth_uid": {
-            ".read": false,
-            ".write": false
-          }
-        }
-      }
-    },
     "unlink_requests": {
-      "$laptop_id": {
+      "$pc_id": {
         "$phone_id": {
           ".read": false,
           ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
@@ -50,10 +19,39 @@
       }
     },
     "token_refresh_requests": {
-      "$laptop_id": {
+      "$pc_id": {
         "$phone_id": {
           ".read": false,
           ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+        }
+      }
+    },
+    "laptops": {
+      "$pc_id": {
+        "pairing_status": {
+          "$phone_id": {
+            ".read": "auth != null && data.child('auth_uid').val() === auth.uid"
+          }
+        },
+        "authorized_uids": { ".read": false, ".write": false },
+        "phones": {
+          "$phone_id": {
+            "profile": {
+              ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)",
+              ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+            },
+            "heartbeat": {
+              ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+            },
+            "identity": { ".read": false, ".write": false }
+          }
+        },
+        "raid_alarm": {
+          ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)",
+          ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+        },
+        "activity_log": {
+          ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
         }
       }
     }

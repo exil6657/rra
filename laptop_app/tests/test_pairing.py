@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from core import config
-from core.pairing import ensure_laptop_identity, manual_pairing_code, pairing_payload, rotate_pair_secret
+from core.pairing import ensure_laptop_identity, manual_pairing_code, pairing_payload, rotate_pair_secret, phone_limit, can_accept_phone
 class PairingIdentityTests(unittest.TestCase):
  def test_identity_is_generated_once_and_persisted(self):
   with tempfile.TemporaryDirectory() as tmp:
@@ -23,4 +23,10 @@ class PairingIdentityTests(unittest.TestCase):
   data=config.validate({'pairing':{'laptop_id':'laptop-1','pair_secret':'secret-value'}})
   self.assertEqual(pairing_payload(data),{'laptop_id':'laptop-1','pair_secret':'secret-value'})
   self.assertEqual(manual_pairing_code(data),'rra://pair/laptop-1/secret-value')
+ def test_phone_limit_is_clamped_and_enforced(self):
+  data=config.validate({'pairing':{'max_phones':20,'phones':{'one':{},'two':{}}}})
+  self.assertEqual(phone_limit(data),5)
+  data['pairing']['max_phones']=1
+  self.assertFalse(can_accept_phone(data,'three'))
+  self.assertTrue(can_accept_phone(data,'one'))
 if __name__=='__main__':unittest.main()

@@ -50,6 +50,8 @@
     "laptop_id": "",
     "pair_secret": "",
     "paired_phone_id": "",
-    "paired_phone_name": ""
+    "paired_phone_name": "",
+    "max_phones": 1,
+    "phones": {}
   }
 }

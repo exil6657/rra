@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PairingFlow(pairing: PairingInfo, manager: PairingManager) {
         var message by remember { mutableStateOf("") }
-        val repository = remember(pairing.laptopId) { FirebaseRepository(pairing.laptopId) }
+        val repository = remember(pairing.laptopId) { FirebaseRepository(pairing.laptopId, pairing.phoneId) }
         DisposableEffect(pairing.laptopId, pairing.phoneId, pairing.pendingSecret) {
             if (pairing.laptopId.isNotBlank() && pairing.pendingSecret.isNotBlank()) {
                 pairingListener = repository.watchPairAcceptance(pairing.phoneId) {
@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun LinkedApp(pairing: PairingInfo, manager: PairingManager) {
-        val firebase = remember(pairing.laptopId) { FirebaseRepository(pairing.laptopId) }
+        val firebase = remember(pairing.laptopId) { FirebaseRepository(pairing.laptopId, pairing.phoneId) }
         val preferences = remember { PreferencesManager(applicationContext) }
         val customSoundUri by preferences.customSoundUri.collectAsState(initial = "")
         var unlinkStatus by remember { mutableStateOf("") }
