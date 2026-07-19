@@ -23,8 +23,8 @@ class PairingManager(private val context:Context){
   val id=parts[0];val secret=parts[1];val authUid=FirebaseAuth.getInstance().currentUser?.uid?:run{onResult(Result.failure(IllegalStateException("Firebase authentication is still starting. Try again in a moment.")));return};val thisPhone=UUID.randomUUID().toString();FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
    FirebaseDatabase.getInstance().getReference("pair_requests").child(id).child(thisPhone).setValue(mapOf("pair_secret" to secret,"fcm_token" to token,"phone_name" to name,"auth_uid" to authUid,"requested_at" to System.currentTimeMillis())).addOnSuccessListener {
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { context.pairingStore.edit { prefs->prefs[laptopId]=id;prefs[phoneId]=thisPhone;prefs[phoneName]=name;prefs[pendingSecret]=secret };mainHandler.post{onResult(Result.success(Unit))} }
-   }.addOnFailureListener{onResult(Result.failure(it))}
-  }.addOnFailureListener{onResult(Result.failure(it))}
+   }.addOnFailureListener{error->mainHandler.post{onResult(Result.failure(error))}}
+  }.addOnFailureListener{error->mainHandler.post{onResult(Result.failure(error))}}
  }
  suspend fun confirmLinked(){context.pairingStore.edit{it.remove(pendingSecret)}}
  fun refreshFcmToken(token:String){
