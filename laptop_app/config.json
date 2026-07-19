@@ -39,7 +39,9 @@
   "app": {
     "start_with_windows": false,
     "start_minimized": false,
-    "phone_alert_mode": "critical"
+    "phone_alert_mode": "critical",
+    "phone_vibration": true,
+    "phone_screen_flash": true
   },
   "activity": [],
   "screen_monitor": {

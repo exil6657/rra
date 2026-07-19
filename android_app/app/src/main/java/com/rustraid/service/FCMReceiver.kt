@@ -5,10 +5,11 @@ import com.google.firebase.messaging.RemoteMessage
 import com.rustraid.data.FirebaseSession
 import com.google.firebase.database.FirebaseDatabase
 class FCMReceiver:FirebaseMessagingService(){
- override fun onNewToken(token:String){
-  FirebaseSession.ensureAuthenticated({FirebaseDatabase.getInstance().getReference("app_meta/phone_fcm_token").setValue(token)},{})
- }
+ override fun onNewToken(token:String){FirebaseSession.ensureAuthenticated({FirebaseDatabase.getInstance().getReference("app_meta/phone_fcm_token").setValue(token)},{})}
  override fun onMessageReceived(message:RemoteMessage){
-  if(message.data["event"]=="raid_alarm") ContextCompat.startForegroundService(this,AlarmService.intent(this,message.data["mode"]=="silent"))
+  if(message.data["event"]=="raid_alarm"){
+   val silent=message.data["mode"]=="silent";val vibration=message.data["vibration"]?.toBooleanStrictOrNull()?:true;val flash=message.data["flash"]?.toBooleanStrictOrNull()?:true
+   ContextCompat.startForegroundService(this,AlarmService.intent(this,silent,vibration,flash))
+  }
  }
 }
