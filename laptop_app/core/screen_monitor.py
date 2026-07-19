@@ -12,6 +12,15 @@ class ScreenMonitor(QThread):
     def valid_region(settings):
         r=settings.get('region',{}); return all(isinstance(r.get(k),int) and r[k]>=(0 if k in ('x','y') else 1) for k in ('x','y','width','height'))
     @staticmethod
+    def ocr_status():
+        """Return a human-readable local Tesseract readiness result without capturing pixels."""
+        try:
+            import pytesseract
+            version=str(pytesseract.get_tesseract_version()).splitlines()[0]
+            return True, f'Tesseract ready ({version})'
+        except Exception as exc:
+            return False, f'Tesseract unavailable: {exc}'
+    @staticmethod
     def save_reference(settings, path):
         """Capture a selected physical desktop rectangle as a PNG reference."""
         import cv2, mss, numpy as np
