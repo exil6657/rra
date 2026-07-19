@@ -94,8 +94,8 @@ def main():
   if remote and target not in ('laptop','both'):return
   alarm_active=True;engine.trigger(force_stealth=(local_mode=='silent'));cooldown.arm_auto_silence()
   if not remote:
-   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':phone_mode,'phone_vibration':phone_vibration,'phone_screen_flash':phone_flash})
-   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',phone_mode,phone_vibration,phone_flash)
+   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':phone_mode,'phone_vibration':phone_vibration,'phone_screen_flash':phone_flash,'auto_silence_minutes':auto_silence})
+   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',phone_mode,phone_vibration,phone_flash,auto_silence)
   display_state('raid');event(('Remote ' if remote else '')+'alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
   nonlocal alarm_active, remote_cooldown_until
