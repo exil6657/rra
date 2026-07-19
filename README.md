@@ -41,9 +41,10 @@ Phrase matching requires [Tesseract OCR](https://github.com/tesseract-ocr/tesser
 ## Firebase setup (optional)
 
 1. Create a Firebase Realtime Database at [Firebase Console](https://console.firebase.google.com).
-2. Create a service-account key for the laptop and enter its JSON plus database URL in **Settings → Integrations**.
-3. Register Android package `com.rustraid`, download `google-services.json`, and put it in `android_app/app/` (it is ignored by Git).
-4. Adapt and publish `firebase/database_rules.json` with Firebase Authentication enabled. Do not use test-mode rules in production.
+2. In **Authentication → Sign-in method**, enable **Anonymous** authentication. The Android client signs in anonymously before accessing the authenticated database rules.
+3. Create a service-account key for the laptop and enter its JSON plus database URL in **Settings → Integrations**.
+4. Register Android package `com.rustraid`, download `google-services.json`, and put it in `android_app/app/` (it is ignored by Git).
+5. Adapt and publish `firebase/database_rules.json` with Firebase Authentication enabled. Do not use test-mode rules in production.
 
 ## Android build
 
