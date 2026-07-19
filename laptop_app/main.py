@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication,QDialog,QVBoxLayout,QLabel,QCheckBox,QPushButton,QWizard,QWizardPage,QLineEdit,QFormLayout,QSystemTrayIcon,QMenu,QMessageBox
-from core.config import load,save,update
+from core.config import load,save,update,CONFIG_DIR
 from core.pairing import ensure_laptop_identity
 from core.firebase_sync import FirebaseSync
 from core.cooldown_manager import CooldownManager
@@ -14,6 +14,7 @@ from core.alarm_engine import AlarmEngine
 from ui.components.alarm_overlay import AlarmOverlay
 from ui.main_window import MainWindow
 ROOT=Path(__file__).parent
+LOG_DIR=CONFIG_DIR/'logs'
 class Disclaimer(QDialog):
  def __init__(self):
   super().__init__();self.setWindowTitle('Before You Continue');self.setMinimumSize(620,410);l=QVBoxLayout(self);l.addWidget(QLabel('⚠️',styleSheet='font-size:54px;color:#FF8C00;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('Before You Continue',styleSheet='font-size:30px;font-weight:800;',alignment=Qt.AlignmentFlag.AlignCenter));l.addWidget(QLabel('This app inspects only a screen rectangle that you explicitly select. It does not use a Discord account token, connect to Discord, send messages, or upload screenshots. OCR and image matching can produce false positives or miss visual changes, so keep the crop narrow and test your trigger before relying on it.'));self.check=QCheckBox('I understand that this is a local visual detector and I will configure it responsibly.');l.addWidget(self.check);b=QPushButton('I Understand — Continue Setup');b.setObjectName('success');b.setEnabled(False);self.check.toggled.connect(b.setEnabled);b.clicked.connect(self.accept);l.addWidget(b);e=QPushButton('Exit');e.clicked.connect(self.reject);l.addWidget(e)
@@ -34,7 +35,7 @@ class Setup(QWizard):
    QMessageBox.warning(self,'Monitor setup required','Select a screen rectangle and enter a trigger phrase before continuing.');self.setCurrentId(0);return
   self.c['screen_monitor'].update({'enabled':True,'region':self.region,'trigger_text':self.trigger.text().strip()});self.c['firebase']['database_url']=self.url.text().strip();self.c['setup_complete']=True;save(self.c);super().accept()
 def main():
- logging.basicConfig(level=logging.INFO,handlers=[RotatingFileHandler(ROOT/'logs/app.log',maxBytes=1_000_000,backupCount=3),logging.StreamHandler()])
+ LOG_DIR.mkdir(parents=True,exist_ok=True);logging.basicConfig(level=logging.INFO,handlers=[RotatingFileHandler(LOG_DIR/'app.log',maxBytes=1_000_000,backupCount=3),logging.StreamHandler()])
  app=QApplication([]);app.setQuitOnLastWindowClosed(False);app.setStyleSheet((ROOT/'ui/styles/global.qss').read_text());c=load()
  if not c['disclaimer_accepted']:
   if Disclaimer().exec()!=QDialog.DialogCode.Accepted:return 0
