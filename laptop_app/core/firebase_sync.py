@@ -86,6 +86,10 @@ class FirebaseSync(QObject):
                     if not isinstance(request,dict): continue
                     secret=str(request.get('pair_secret','')); token=str(request.get('fcm_token','')); name=str(request.get('phone_name','Android phone'))
                     if secret and token and secrets.compare_digest(secret,expected):
+                        existing=self.config['pairing'].get('paired_phone_id','')
+                        if existing and existing!=request_id:
+                            # One-phone policy: ignore requests until the user explicitly unlinks.
+                            continue
                         self.root.child('app_meta').update({'phone_fcm_token':token,'phone_last_seen':datetime.now(timezone.utc).isoformat(),'paired_phone_name':name,'paired_phone_id':request_id})
                         self.config['pairing'].update({'paired_phone_id':request_id,'paired_phone_name':name})
                         from core.config import save
