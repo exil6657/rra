@@ -1,12 +1,6 @@
 {
   "disclaimer_accepted": false,
   "setup_complete": false,
-  "discord": {
-    "bot_token": "",
-    "channel_id": "",
-    "user_id": "",
-    "channel_name": ""
-  },
   "firebase": {
     "service_account_json": "",
     "database_url": ""
@@ -27,14 +21,6 @@
     "quiet_hours_enabled": false,
     "quiet_hours_start": "23:00",
     "quiet_hours_end": "07:00"
-  },
-  "integrations": {
-    "snap_enabled": false,
-    "snap_username": "",
-    "snap_message": "WE ARE BEING RAIDED — GET ON!",
-    "discord_dm_enabled": false,
-    "discord_friend_id": "",
-    "discord_dm_message": "RAID ALERT Get on Rust NOW"
   },
   "app": {
     "start_with_windows": false,
