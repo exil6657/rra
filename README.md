@@ -200,7 +200,7 @@ randroid_app
 
 ## 7. Pair the phone to the laptop
 
-The system supports **one phone per laptop**. Pairing a replacement phone requires unlinking the current phone first.
+The PC controls a configurable limit of **1–5 linked phones**. Each enabled linked phone receives the shared raid event but runs its own alarm profile. Use the PC Pair Phone page to set the limit, disable a phone, or remove an individual phone.
 
 ### On the laptop
 
@@ -227,8 +227,9 @@ After acceptance:
 ```text
 Phone becomes linked
 → phone starts scoped Firebase monitoring
-→ laptop stores that phone’s FCM token
-→ alerts route only to that phone
+→ PC stores that phone’s FCM token and profile
+→ alerts route to every enabled linked phone
+→ each phone applies its own profile
 ```
 
 The laptop Pair Phone page reports the linked phone name. It can also generate a new pairing code to invalidate an exposed/stale code. Unlinking a phone automatically rotates the pairing secret. The Android app exposes **Unlink this phone** in Settings; unlinking clears local pairing and sends an authenticated unlink request to the laptop.
