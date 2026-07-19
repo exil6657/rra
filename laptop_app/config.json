@@ -27,7 +27,8 @@
     "start_minimized": false,
     "phone_alert_mode": "critical",
     "phone_vibration": true,
-    "phone_screen_flash": true
+    "phone_screen_flash": true,
+    "phone_volume_override": true
   },
   "activity": [],
   "screen_monitor": {
