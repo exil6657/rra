@@ -5,17 +5,19 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None
+        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None; self._connection_fingerprint=None
     def connect(self):
         try:
             import firebase_admin
             from firebase_admin import credentials, db
             raw=self.config['firebase'].get('service_account_json',''); url=self.config['firebase'].get('database_url','')
             if not raw or not url: raise ValueError('Firebase is not configured')
-            name='rustraid'
+            fingerprint=(raw,url); name='rustraid'
+            if self.app and self._connection_fingerprint != fingerprint:
+                self.close(); firebase_admin.delete_app(self.app); self.app=None
             try: app=firebase_admin.get_app(name)
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
-            self.app=app; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); self._start_unlink_listener(); self._start_token_listener(); return True
+            self.app=app; self._connection_fingerprint=fingerprint; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); self._start_unlink_listener(); self._start_token_listener(); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
     def _start_listener(self):
@@ -38,7 +40,7 @@ class FirebaseSync(QObject):
                     signature=(state.get('acknowledged_by'),state.get('acknowledged_at'),state.get('cooldown_until'))
                     if signature!=self._last_ack_signature:
                         self._last_ack_signature=signature; self.remote_acknowledged.emit(str(state['acknowledged_by']))
-                elif not state.get('acknowledged'): self._last_ack_signature=None
+                elif not state.get('acknowledged'): self._last_ack_signature=None; self._connection_fingerprint=None
             except Exception: logging.getLogger(__name__).exception('Firebase event processing failed')
         try: self._listener=self.root.child('raid_alarm').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase listener unavailable: %s',exc)
