@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication,QDialog,QVBoxLayout,QLabel,QCheckBox,QPushButton,QWizard,QWizardPage,QLineEdit,QFormLayout,QSystemTrayIcon,QMenu,QMessageBox
 from core.config import load,save,update
+from core.pairing import ensure_laptop_identity
 from core.firebase_sync import FirebaseSync
 from core.cooldown_manager import CooldownManager
 from core.screen_monitor import ScreenMonitor
@@ -40,7 +41,7 @@ def main():
   c['disclaimer_accepted']=True;save(c)
  if not c['setup_complete']:
   if Setup(c).exec()!=QDialog.DialogCode.Accepted:return 0
- c=load(); firebase=FirebaseSync(c);firebase.connect();overlay=AlarmOverlay();engine=AlarmEngine(c,overlay);cooldown=CooldownManager(c['cooldown']);monitor=ScreenMonitor(c['screen_monitor']);alarm_active=False; remote_cooldown_until=None
+ c=ensure_laptop_identity(load()); firebase=FirebaseSync(c);firebase.connect();overlay=AlarmOverlay();engine=AlarmEngine(c,overlay);cooldown=CooldownManager(c['cooldown']);monitor=ScreenMonitor(c['screen_monitor']);alarm_active=False; remote_cooldown_until=None
  def persist(section,values):
   nonlocal c
   c=update(section,values)

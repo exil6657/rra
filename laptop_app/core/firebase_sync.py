@@ -3,9 +3,9 @@ import json, logging
 from datetime import datetime, timezone
 from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
-    connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); error=pyqtSignal(str)
+    connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.app=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None
+        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None
     def connect(self):
         try:
             import firebase_admin
@@ -15,11 +15,11 @@ class FirebaseSync(QObject):
             name='rustraid'
             try: app=firebase_admin.get_app(name)
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
-            self.app=app; self.db=db.reference('/',app=app); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); return True
+            self.app=app; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
     def _start_listener(self):
-        if not self.db or self._listener: return
+        if not self.root or self._listener: return
         def changed(event):
             try:
                 # Firebase streams send an initial root snapshot and later child-level patches.
@@ -40,10 +40,10 @@ class FirebaseSync(QObject):
                         self._last_ack_signature=signature; self.remote_acknowledged.emit(str(state['acknowledged_by']))
                 elif not state.get('acknowledged'): self._last_ack_signature=None
             except Exception: logging.getLogger(__name__).exception('Firebase event processing failed')
-        try: self._listener=self.db.child('raid_alarm').listen(changed)
+        try: self._listener=self.root.child('raid_alarm').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase listener unavailable: %s',exc)
     def _start_settings_listener(self):
-        if not self.db or self._settings_listener: return
+        if not self.root or self._settings_listener: return
         def changed(event):
             try:
                 if event.path in ('/', ''): self._settings_state=dict(event.data or {}) if isinstance(event.data,dict) else {}
@@ -55,10 +55,10 @@ class FirebaseSync(QObject):
                         else: target[parts[-1]]=event.data
                 self.remote_settings.emit(dict(self._settings_state))
             except Exception: logging.getLogger(__name__).exception('Firebase settings event processing failed')
-        try: self._settings_listener=self.db.child('settings').listen(changed)
+        try: self._settings_listener=self.root.child('settings').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase settings listener unavailable: %s',exc)
     def _start_meta_listener(self):
-        if not self.db or self._meta_listener: return
+        if not self.root or self._meta_listener: return
         def changed(event):
             try:
                 if event.path in ('/', ''): self._meta_state=dict(event.data or {}) if isinstance(event.data,dict) else {}
@@ -71,37 +71,64 @@ class FirebaseSync(QObject):
                 # Never expose the private FCM token through the UI signal.
                 visible={k:v for k,v in self._meta_state.items() if k!='phone_fcm_token'}; self.remote_meta.emit(visible)
             except Exception: logging.getLogger(__name__).exception('Firebase metadata event processing failed')
-        try: self._meta_listener=self.db.child('app_meta').listen(changed)
+        try: self._meta_listener=self.root.child('app_meta').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase metadata listener unavailable: %s',exc)
+    def _start_pair_listener(self):
+        """Accept only requests carrying this laptop's locally-held high-entropy secret."""
+        if not self.db or self._pair_listener: return
+        import secrets
+        laptop_id=self.config['pairing']['laptop_id']; expected=self.config['pairing']['pair_secret']; requests=self.db.child('pair_requests').child(laptop_id)
+        def changed(event):
+            try:
+                data=event.data if event.path in ('/', '') else {event.path.strip('/'):event.data}
+                if not isinstance(data,dict): return
+                for request_id,request in data.items():
+                    if not isinstance(request,dict): continue
+                    secret=str(request.get('pair_secret','')); token=str(request.get('fcm_token','')); name=str(request.get('phone_name','Android phone'))
+                    if secret and token and secrets.compare_digest(secret,expected):
+                        self.root.child('app_meta').update({'phone_fcm_token':token,'phone_last_seen':datetime.now(timezone.utc).isoformat(),'paired_phone_name':name,'paired_phone_id':request_id})
+                        self.config['pairing'].update({'paired_phone_id':request_id,'paired_phone_name':name})
+                        from core.config import save
+                        save(self.config); requests.child(request_id).delete(); self.pairing_changed.emit({'linked':True,'phone_id':request_id,'phone_name':name})
+            except Exception: logging.getLogger(__name__).exception('Pairing request processing failed')
+        try: self._pair_listener=requests.listen(changed)
+        except Exception as exc: logging.getLogger(__name__).warning('Pairing listener unavailable: %s',exc)
+    def pairing_details(self):
+        pairing=self.config['pairing']; return {'laptop_id':pairing['laptop_id'],'pair_secret':pairing['pair_secret'],'paired_phone_id':pairing.get('paired_phone_id',''),'paired_phone_name':pairing.get('paired_phone_name','')}
+    def unlink_phone(self):
+        if self.root: self.root.child('app_meta').update({'phone_fcm_token':None,'paired_phone_name':None,'paired_phone_id':None})
+        self.config['pairing'].update({'paired_phone_id':'','paired_phone_name':''})
+        from core.config import save
+        save(self.config); self.pairing_changed.emit({'linked':False})
     def close(self):
-        for listener_name in ('_listener','_settings_listener','_meta_listener'):
+        for listener_name in ('_listener','_settings_listener','_meta_listener','_pair_listener'):
             listener=getattr(self,listener_name)
             if listener:
                 try: listener.close()
                 except Exception: pass
                 setattr(self,listener_name,None)
     def write_alarm(self, values):
-        if self.db: self.db.child('raid_alarm').update(values)
+        if self.root: self.root.child('raid_alarm').update(values)
     def write_settings(self, values):
-        if self.db: self.db.child('settings').update(values)
+        if self.root: self.root.child('settings').update(values)
     def send_phone_alarm(self, triggered_at, message='Visual alert detected', mode='critical', vibration=True, flash=True):
         """Send a high-priority data-only FCM alert to the registered phone.
         FCM is needed because a Realtime Database listener alone is not a reliable way to wake a
         phone from deep idle. Failure leaves the Firebase state as the fallback delivery path.
         """
-        if not self.db or not self.app: return False
+        if not self.root or not self.app: return False
         try:
             from firebase_admin import messaging
-            token=self.db.child('app_meta/phone_fcm_token').get()
+            token=self.root.child('app_meta/phone_fcm_token').get()
             if not token: return False
             notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message),'mode':str(mode),'vibration':str(bool(vibration)).lower(),'flash':str(bool(flash)).lower()},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
             messaging.send(notice,app=self.app); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('FCM delivery unavailable: %s',exc); self.error.emit(str(exc)); return False
     def log(self, entry):
-        if self.db: self.db.child('activity_log/entries').push(entry)
+        if self.root: self.root.child('activity_log/entries').push(entry)
     def heartbeat(self, device='laptop'):
-        if self.db: self.db.child('app_meta').update({f'{device}_last_seen':datetime.now(timezone.utc).isoformat()})
+        if self.root: self.root.child('app_meta').update({f'{device}_last_seen':datetime.now(timezone.utc).isoformat()})
     def acknowledge(self, source, cooldown_until=None):
         payload={'alarm_active':False,'acknowledged':True,'acknowledged_by':source,'acknowledged_at':datetime.now(timezone.utc).isoformat()}
         if cooldown_until: payload['cooldown_until']=cooldown_until

@@ -57,5 +57,11 @@
     "template_threshold": 0.88,
     "poll_interval_ms": 400,
     "confirm_frames": 2
+  },
+  "pairing": {
+    "laptop_id": "",
+    "pair_secret": "",
+    "paired_phone_id": "",
+    "paired_phone_name": ""
   }
 }
