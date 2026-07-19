@@ -5,7 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self._listener=None
+        super().__init__(); self.config=config; self.db=None; self._listener=None; self._alarm_state={}; self._last_ack_signature=None
     def connect(self):
         try:
             import firebase_admin
@@ -22,10 +22,23 @@ class FirebaseSync(QObject):
         if not self.db or self._listener: return
         def changed(event):
             try:
-                payload=event.data if isinstance(event.data,dict) else {}
-                self.remote_state.emit(payload)
-                if payload.get('acknowledged') or payload.get('alarm_active') is False and payload.get('acknowledged_by'):
-                    self.remote_acknowledged.emit(str(payload.get('acknowledged_by','remote device')))
+                # Firebase streams send an initial root snapshot and later child-level patches.
+                # Reconcile patches into a local snapshot before notifying the UI.
+                if event.path in ('/', ''):
+                    self._alarm_state=dict(event.data or {}) if isinstance(event.data,dict) else {}
+                else:
+                    target=self._alarm_state; parts=[p for p in event.path.strip('/').split('/') if p]
+                    for part in parts[:-1]:
+                        target=target.setdefault(part,{})
+                    if parts:
+                        if event.data is None: target.pop(parts[-1],None)
+                        else: target[parts[-1]]=event.data
+                state=dict(self._alarm_state); self.remote_state.emit(state)
+                if state.get('acknowledged') and state.get('acknowledged_by'):
+                    signature=(state.get('acknowledged_by'),state.get('acknowledged_at'),state.get('cooldown_until'))
+                    if signature!=self._last_ack_signature:
+                        self._last_ack_signature=signature; self.remote_acknowledged.emit(str(state['acknowledged_by']))
+                elif not state.get('acknowledged'): self._last_ack_signature=None
             except Exception: logging.getLogger(__name__).exception('Firebase event processing failed')
         try: self._listener=self.db.child('raid_alarm').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase listener unavailable: %s',exc)
