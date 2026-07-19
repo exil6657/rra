@@ -6,6 +6,7 @@ data class AppSettings(
  val screenFlash:Boolean=true,
  val vibration:Boolean=true,
  val volumeOverride:Boolean=true,
+ val phoneSoundPreset:String="defcon1",
  val quietHoursEnabled:Boolean=false,
  val quietHoursStart:String="23:00",
  val quietHoursEnd:String="07:00",

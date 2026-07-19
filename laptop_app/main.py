@@ -63,7 +63,7 @@ def main():
   cooldown_map={'cooldown_duration_minutes':'duration_minutes','auto_silence_minutes':'auto_silence_minutes','quiet_hours_enabled':'quiet_hours_enabled','quiet_hours_start':'quiet_hours_start','quiet_hours_end':'quiet_hours_end'}
   changed=False
   if 'alert_mode' in shared and c['app'].get('phone_alert_mode')!=shared['alert_mode']:c['app']['phone_alert_mode']=shared['alert_mode'];changed=True
-  for remote,local in (('vibration','phone_vibration'),('screen_flash','phone_screen_flash'),('volume_override','phone_volume_override')):
+  for remote,local in (('vibration','phone_vibration'),('screen_flash','phone_screen_flash'),('volume_override','phone_volume_override'),('phone_sound_preset','phone_sound_preset')):
    if remote in shared and c['app'].get(local)!=shared[remote]:c['app'][local]=shared[remote];changed=True
   for key in alarm_keys:
    if key in shared and c['alarm'].get(key)!=shared[key]:c['alarm'][key]=shared[key];changed=True
@@ -94,8 +94,8 @@ def main():
   if remote and target not in ('laptop','both'):return
   alarm_active=True;engine.trigger(force_stealth=(local_mode=='silent'));cooldown.arm_auto_silence()
   if not remote:
-   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':phone_mode,'phone_vibration':phone_vibration,'phone_screen_flash':phone_flash,'phone_volume_override':phone_volume_override,'auto_silence_minutes':auto_silence})
-   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',phone_mode,phone_vibration,phone_flash,auto_silence,phone_volume_override)
+   firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':phone_mode,'phone_vibration':phone_vibration,'phone_screen_flash':phone_flash,'phone_volume_override':phone_volume_override,'phone_sound_preset':phone_sound_preset,'auto_silence_minutes':auto_silence})
+   if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',phone_mode,phone_vibration,phone_flash,auto_silence,phone_volume_override,phone_sound_preset)
   display_state('raid');event(('Remote ' if remote else '')+'alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
   nonlocal alarm_active, remote_cooldown_until

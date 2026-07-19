@@ -28,7 +28,8 @@
     "phone_alert_mode": "critical",
     "phone_vibration": true,
     "phone_screen_flash": true,
-    "phone_volume_override": true
+    "phone_volume_override": true,
+    "phone_sound_preset": "defcon1"
   },
   "activity": [],
   "screen_monitor": {

@@ -152,7 +152,7 @@ class FirebaseSync(QObject):
         if self.root: self.root.child('raid_alarm').update(values)
     def write_settings(self, values):
         if self.root: self.root.child('settings').update(values)
-    def send_phone_alarm(self, triggered_at, message='Visual alert detected', mode='critical', vibration=True, flash=True, auto_silence_minutes=5, volume_override=True):
+    def send_phone_alarm(self, triggered_at, message='Visual alert detected', mode='critical', vibration=True, flash=True, auto_silence_minutes=5, volume_override=True, sound_preset='defcon1'):
         """Send a high-priority data-only FCM alert to the registered phone.
         FCM is needed because a Realtime Database listener alone is not a reliable way to wake a
         phone from deep idle. Failure leaves the Firebase state as the fallback delivery path.
@@ -162,7 +162,7 @@ class FirebaseSync(QObject):
             from firebase_admin import messaging
             token=self.root.child('app_meta/phone_fcm_token').get()
             if not token: return False
-            notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message),'mode':str(mode),'vibration':str(bool(vibration)).lower(),'flash':str(bool(flash)).lower(),'auto_silence_minutes':str(int(auto_silence_minutes)),'volume_override':str(bool(volume_override)).lower(),'laptop_id':self.config['pairing']['laptop_id']},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
+            notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message),'mode':str(mode),'vibration':str(bool(vibration)).lower(),'flash':str(bool(flash)).lower(),'auto_silence_minutes':str(int(auto_silence_minutes)),'volume_override':str(bool(volume_override)).lower(),'sound_preset':str(sound_preset),'laptop_id':self.config['pairing']['laptop_id']},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
             messaging.send(notice,app=self.app); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('FCM delivery unavailable: %s',exc); self.error.emit(str(exc)); return False
