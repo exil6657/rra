@@ -5,7 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); remote_phones=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._phones_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None; self._connection_fingerprint=None
+        super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._phones_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._phone_roster={}; self._last_ack_signature=None; self._connection_fingerprint=None
     def is_configured(self):
         return bool(self.config.get('firebase',{}).get('service_account_json') and self.config.get('firebase',{}).get('database_url'))
     def is_connected(self):
@@ -91,8 +91,8 @@ class FirebaseSync(QObject):
         def changed(event):
             try:
                 data=event.data if isinstance(event.data,dict) else {}
-                visible={phone_id:{'name':phone.get('identity',{}).get('name','Phone'),'enabled':phone.get('identity',{}).get('enabled',True),'heartbeat':phone.get('heartbeat')} for phone_id,phone in data.items() if isinstance(phone,dict)}
-                self.remote_phones.emit(visible)
+                visible={phone_id:{'name':phone.get('identity',{}).get('name','Phone'),'enabled':phone.get('identity',{}).get('enabled',True),'heartbeat':phone.get('heartbeat'),'profile':phone.get('profile',{})} for phone_id,phone in data.items() if isinstance(phone,dict)}
+                self._phone_roster=visible; self.remote_phones.emit(visible)
             except Exception: logging.getLogger(__name__).exception('Phone roster event processing failed')
         try: self._phones_listener=self.root.child('phones').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Phone roster listener unavailable: %s',exc)
@@ -144,7 +144,7 @@ class FirebaseSync(QObject):
         try: self._token_listener=requests.listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Token refresh listener unavailable: %s',exc)
     def pairing_details(self):
-        pairing=self.config['pairing']; return {'laptop_id':pairing['laptop_id'],'pair_secret':pairing['pair_secret'],'max_phones':pairing.get('max_phones',1),'phones':pairing.get('phones',{})}
+        pairing=self.config['pairing']; local=pairing.get('phones',{}); phones={phone_id:{**local.get(phone_id,{}),**remote} for phone_id,remote in self._phone_roster.items()}; phones.update({phone_id:data for phone_id,data in local.items() if phone_id not in phones}); return {'laptop_id':pairing['laptop_id'],'pair_secret':pairing['pair_secret'],'max_phones':pairing.get('max_phones',1),'phones':phones}
     def set_phone_limit(self, limit):
         self.config['pairing']['max_phones']=max(1,min(5,int(limit))); from core.config import save; save(self.config); self.pairing_changed.emit({'phones':self.pairing_details()['phones']})
     def unlink_phone(self, phone_id):

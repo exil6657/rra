@@ -17,7 +17,7 @@ class PairingSettings(QWidget):
    item=self.phones_box.takeAt(0);widget=item.widget();widget.deleteLater() if widget else None
   if not phones:self.phones_box.addWidget(QLabel('No phones paired yet.'))
   for phone_id,phone in phones.items():
-   card=QFrame();card.setStyleSheet('background:#141414;border:1px solid #2A2A2A;border-radius:8px;');row=QHBoxLayout(card);enabled=QCheckBox(phone.get('name','Phone'));enabled.setChecked(phone.get('enabled',True));enabled.toggled.connect(lambda value,pid=phone_id:self.firebase.set_phone_enabled(pid,value));remove=QPushButton('Remove');remove.clicked.connect(lambda _,pid=phone_id:self.remove_phone(pid));row.addWidget(enabled,1);row.addWidget(remove);self.phones_box.addWidget(card)
+   card=QFrame();card.setStyleSheet('background:#141414;border:1px solid #2A2A2A;border-radius:8px;');row=QHBoxLayout(card);enabled=QCheckBox(phone.get('name','Phone'));enabled.setChecked(phone.get('enabled',True));profile=phone.get('profile',{});summary=QLabel(f"{profile.get('alert_mode','critical').upper()} // {profile.get('sound_preset','defcon1').upper()} // {'FLASH' if profile.get('screen_flash',True) else 'NO FLASH'}");enabled.toggled.connect(lambda value,pid=phone_id:self.firebase.set_phone_enabled(pid,value));remove=QPushButton('Remove');remove.clicked.connect(lambda _,pid=phone_id:self.remove_phone(pid));row.addWidget(enabled,1);row.addWidget(summary,1);row.addWidget(remove);self.phones_box.addWidget(card)
  def rotate_code(self):
   if QMessageBox.question(self,'Generate new pairing code','Invalidate the currently displayed pairing code? Pending pairing requests using it will no longer work.')==QMessageBox.StandardButton.Yes:self.firebase.rotate_pairing_code();self.refresh()
  def remove_phone(self,phone_id):
