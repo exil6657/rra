@@ -3,9 +3,9 @@ import json, logging
 from datetime import datetime, timezone
 from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
-    connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); error=pyqtSignal(str)
+    connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self.app=None; self._listener=None; self._alarm_state={}; self._last_ack_signature=None
+        super().__init__(); self.config=config; self.db=None; self.app=None; self._listener=None; self._settings_listener=None; self._alarm_state={}; self._settings_state={}; self._last_ack_signature=None
     def connect(self):
         try:
             import firebase_admin
@@ -15,7 +15,7 @@ class FirebaseSync(QObject):
             name='rustraid'
             try: app=firebase_admin.get_app(name)
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
-            self.app=app; self.db=db.reference('/',app=app); self.connected.emit(True); self._start_listener(); return True
+            self.app=app; self.db=db.reference('/',app=app); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
     def _start_listener(self):
@@ -42,11 +42,28 @@ class FirebaseSync(QObject):
             except Exception: logging.getLogger(__name__).exception('Firebase event processing failed')
         try: self._listener=self.db.child('raid_alarm').listen(changed)
         except Exception as exc: logging.getLogger(__name__).warning('Firebase listener unavailable: %s',exc)
+    def _start_settings_listener(self):
+        if not self.db or self._settings_listener: return
+        def changed(event):
+            try:
+                if event.path in ('/', ''): self._settings_state=dict(event.data or {}) if isinstance(event.data,dict) else {}
+                else:
+                    target=self._settings_state; parts=[p for p in event.path.strip('/').split('/') if p]
+                    for part in parts[:-1]: target=target.setdefault(part,{})
+                    if parts:
+                        if event.data is None: target.pop(parts[-1],None)
+                        else: target[parts[-1]]=event.data
+                self.remote_settings.emit(dict(self._settings_state))
+            except Exception: logging.getLogger(__name__).exception('Firebase settings event processing failed')
+        try: self._settings_listener=self.db.child('settings').listen(changed)
+        except Exception as exc: logging.getLogger(__name__).warning('Firebase settings listener unavailable: %s',exc)
     def close(self):
-        if self._listener:
-            try: self._listener.close()
-            except Exception: pass
-            self._listener=None
+        for listener_name in ('_listener','_settings_listener'):
+            listener=getattr(self,listener_name)
+            if listener:
+                try: listener.close()
+                except Exception: pass
+                setattr(self,listener_name,None)
     def write_alarm(self, values):
         if self.db: self.db.child('raid_alarm').update(values)
     def write_settings(self, values):
