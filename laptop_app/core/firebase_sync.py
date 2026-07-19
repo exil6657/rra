@@ -6,6 +6,12 @@ class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); remote_settings=pyqtSignal(dict); remote_meta=pyqtSignal(dict); pairing_changed=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
         super().__init__(); self.config=config; self.db=None; self.root=None; self.app=None; self._pair_listener=None; self._unlink_listener=None; self._token_listener=None; self._listener=None; self._settings_listener=None; self._meta_listener=None; self._alarm_state={}; self._settings_state={}; self._meta_state={}; self._last_ack_signature=None; self._connection_fingerprint=None
+    def is_configured(self):
+        return bool(self.config.get('firebase',{}).get('service_account_json') and self.config.get('firebase',{}).get('database_url'))
+    def is_connected(self):
+        return self.root is not None
+    def _mark_unavailable(self, exc):
+        logging.getLogger(__name__).warning('Firebase operation unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False)
     def connect(self):
         try:
             import firebase_admin
@@ -19,7 +25,7 @@ class FirebaseSync(QObject):
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
             self.app=app; self._connection_fingerprint=fingerprint; self.db=db.reference('/',app=app); laptop_id=self.config['pairing']['laptop_id']; self.root=self.db.child('laptops').child(laptop_id); self.connected.emit(True); self._start_listener(); self._start_settings_listener(); self._start_meta_listener(); self._start_pair_listener(); self._start_unlink_listener(); self._start_token_listener(); return True
         except Exception as exc:
-            logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
+            self.root=None; self.db=None; self._mark_unavailable(exc); return False
     def _start_listener(self):
         if not self.root or self._listener: return
         def changed(event):
@@ -149,9 +155,13 @@ class FirebaseSync(QObject):
                 except Exception: pass
                 setattr(self,listener_name,None)
     def write_alarm(self, values):
-        if self.root: self.root.child('raid_alarm').update(values)
+        if not self.root: return False
+        try: self.root.child('raid_alarm').update(values); return True
+        except Exception as exc: self._mark_unavailable(exc); return False
     def write_settings(self, values):
-        if self.root: self.root.child('settings').update(values)
+        if not self.root: return False
+        try: self.root.child('settings').update(values); return True
+        except Exception as exc: self._mark_unavailable(exc); return False
     def send_phone_alarm(self, triggered_at, message='Visual alert detected', mode='critical', vibration=True, flash=True, auto_silence_minutes=5, volume_override=True, sound_preset='defcon1'):
         """Send a high-priority data-only FCM alert to the registered phone.
         FCM is needed because a Realtime Database listener alone is not a reliable way to wake a
@@ -167,9 +177,13 @@ class FirebaseSync(QObject):
         except Exception as exc:
             logging.getLogger(__name__).warning('FCM delivery unavailable: %s',exc); self.error.emit(str(exc)); return False
     def log(self, entry):
-        if self.root: self.root.child('activity_log/entries').push(entry)
+        if not self.root: return False
+        try: self.root.child('activity_log/entries').push(entry); return True
+        except Exception as exc: self._mark_unavailable(exc); return False
     def heartbeat(self, device='laptop'):
-        if self.root: self.root.child('app_meta').update({f'{device}_last_seen':datetime.now(timezone.utc).isoformat()})
+        if not self.root: return False
+        try: self.root.child('app_meta').update({f'{device}_last_seen':datetime.now(timezone.utc).isoformat()}); return True
+        except Exception as exc: self._mark_unavailable(exc); return False
     def acknowledge(self, source, cooldown_until=None):
         payload={'alarm_active':False,'acknowledged':True,'acknowledged_by':source,'acknowledged_at':datetime.now(timezone.utc).isoformat()}
         if cooldown_until: payload['cooldown_until']=cooldown_until
