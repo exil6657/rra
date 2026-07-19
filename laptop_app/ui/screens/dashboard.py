@@ -10,7 +10,7 @@ class Dashboard(QWidget):
         grid=QGridLayout(); l.addLayout(grid); self.status=StatusIndicator(); self.connection=QLabel('Disconnected'); grid.addWidget(self.card('Screen Monitor Status',[self.status,self.connection,QLabel('Monitoring: selected screen region'),QLabel('Last ping: Never')]),0,0)
         self.alarm_buttons=[]; test=QPushButton('🔴 TEST RAID'); test.setObjectName('danger'); test.clicked.connect(self.test_requested); self.ack=QPushButton('✅ ACKNOWLEDGE'); self.ack.setObjectName('success'); self.ack.clicked.connect(self.acknowledge_requested); self.ack.hide(); self.over=QPushButton('🏁 RAID OVER'); self.over.clicked.connect(self.raid_over_requested); self.over.hide(); grid.addWidget(self.card('Alarm Control',[QLabel('Preset: '+config['alarm']['active_preset'].upper()),test,self.ack,self.over]),0,1)
         quick=[]
-        for text,key in [('Laptop Only','laptop'),('Phone Only','phone'),('Both','both')]:
+        for text,key in [('PC Only','laptop'),('Phone Only','phone'),('Both','both')]:
             b=QPushButton(text); b.clicked.connect(lambda _,x=key:self.target_changed.emit(x)); quick.append(b)
         for text,key in [('DEFCON 1','defcon1'),('Tactical','tactical'),('Stealth','stealth'),('Custom','custom')]:
             b=QPushButton(text); b.clicked.connect(lambda _,x=key:self.preset_changed.emit(x)); quick.append(b)

@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
             onPair = { code, name ->
                 lifecycleScope.launch {
                     manager.request(code, name) { result ->
-                        message = if (result.isSuccess) "Pair request sent. Accept it on the laptop."
+                        message = if (result.isSuccess) "Pair request sent. Accept it on the PC."
                         else result.exceptionOrNull()?.message ?: "Pairing failed."
                     }
                 }
@@ -133,6 +133,7 @@ class MainActivity : ComponentActivity() {
                             { requestBatteryExemption() },
                             { requestFullScreenPermission() },
                             { requestDndAccess() },
+                            { requestNotificationPermission() },
                             {
                                 lifecycleScope.launch {
                                     manager.requestUnlink(pairing) { result ->
@@ -160,4 +161,8 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 34) startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:$packageName")))
     }
     private fun requestDndAccess() { startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) }
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33) ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 10)
+        else startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+    }
 }
