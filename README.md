@@ -119,7 +119,7 @@ The expected output is:
 laptop_app\dist\RustRaidAlarm\RustRaidAlarm.exe
 ```
 
-Run the EXE from that folder so its bundled assets are available.
+Run the EXE from that folder so its bundled assets are available. Runtime configuration, logs, reference images, and pairing QR data are stored under `%APPDATA%\RustRaidAlarm`.
 
 ## 4. First-run laptop setup
 
@@ -149,7 +149,7 @@ On the laptop:
    Firebase: connected ✓
    ```
 
-The service-account JSON remains in local app configuration only. It must not be committed to Git.
+On Windows, runtime configuration is stored under `%APPDATA%\RustRaidAlarm\config.json` even when you run from source. The service-account JSON remains there locally and must not be committed to Git.
 
 ## 6. Build and install the Android APK
 
