@@ -6,7 +6,7 @@
       "$laptop_id": {
         "$phone_id": {
           ".read": false,
-          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+          ".write": "auth != null && (newData.child('auth_uid').val() === auth.uid || (!newData.exists() && data.child('auth_uid').val() === auth.uid))"
         }
       }
     },

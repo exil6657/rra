@@ -27,6 +27,10 @@ class PairingManager(private val context:Context){
   }.addOnFailureListener{error->mainHandler.post{onResult(Result.failure(error))}}
  }
  suspend fun confirmLinked(){context.pairingStore.edit{it.remove(pendingSecret)}}
+ suspend fun cancelPending(info:PairingInfo){
+  if(info.laptopId.isNotBlank()&&info.phoneId.isNotBlank())FirebaseDatabase.getInstance().getReference("pair_requests").child(info.laptopId).child(info.phoneId).removeValue()
+  context.pairingStore.edit{it.clear()}
+ }
  fun refreshFcmToken(token:String){
   kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
    val pairing=info.first();val uid=FirebaseAuth.getInstance().currentUser?.uid?:return@launch
