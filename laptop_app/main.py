@@ -58,10 +58,10 @@ def main():
   if cooldown.remaining():
    event('Cooldown blocked screen trigger');return
   if alarm_active:return
-  triggered_at=datetime.utcnow().isoformat()+'Z';target=c['alarm']['device_target'];alarm_active=True
-  engine.trigger(force_stealth=cooldown.in_quiet_hours());cooldown.arm_auto_silence()
-  firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target})
-  if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected')
+  triggered_at=datetime.utcnow().isoformat()+'Z';target=c['alarm']['device_target'];preset=c['alarm']['active_preset'];mode='silent' if cooldown.in_quiet_hours() or preset=='stealth' else 'critical';alarm_active=True
+  engine.trigger(force_stealth=(mode=='silent'));cooldown.arm_auto_silence()
+  firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target,'alert_mode':mode})
+  if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected',mode)
   display_state('raid');event('Alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
   nonlocal alarm_active, remote_cooldown_until
@@ -82,7 +82,7 @@ def main():
   remote_cooldown_until=data.get('cooldown_until')
   if data.get('alarm_active') and not alarm_active: raid({'author':'remote device'})
  monitor.detected.connect(lambda data:raid({'author':'screen monitor ('+data['reason']+')'}));monitor.state_changed.connect(lambda state:display_state('monitoring' if state=='monitoring' else 'disconnected'));monitor.error.connect(lambda message:event('Screen monitor error: '+message));cooldown.changed.connect(display_state);cooldown.expired.connect(lambda:(display_state('monitoring'),event('Monitoring resumed')));cooldown.auto_silence.connect(lambda:acknowledge('auto-silence'));firebase.remote_state.connect(sync_remote);firebase.remote_acknowledged.connect(lambda source:acknowledge('remote:'+str(source or 'device')))
- window.dashboard.test_requested.connect(lambda:raid({'author':'local test'}));window.dashboard.acknowledge_requested.connect(acknowledge);window.dashboard.raid_over_requested.connect(raid_over);window.dashboard.target_changed.connect(lambda x:persist('alarm',{'device_target':x}));window.dashboard.preset_changed.connect(lambda x:persist('alarm',{'active_preset':x}));open_action.triggered.connect(lambda:(window.showNormal(),window.raise_(),window.activateWindow()));settings_action.triggered.connect(lambda:(window.showNormal(),window.route('settings')));test_action.triggered.connect(lambda:raid({'author':'tray test'}));ack_action.triggered.connect(acknowledge);over_action.triggered.connect(raid_over);quit_action.triggered.connect(lambda:(monitor.stop(),firebase.close(),app.quit()));tray.activated.connect(lambda reason:open_action.trigger() if reason==QSystemTrayIcon.ActivationReason.Trigger else None)
+ window.dashboard.test_requested.connect(lambda:raid({'author':'local test'}));window.alarm_test_requested.connect(lambda preset:(engine.trigger(preset),QTimer.singleShot(8000,engine.stop)));window.dashboard.acknowledge_requested.connect(acknowledge);window.dashboard.raid_over_requested.connect(raid_over);window.dashboard.target_changed.connect(lambda x:persist('alarm',{'device_target':x}));window.dashboard.preset_changed.connect(lambda x:persist('alarm',{'active_preset':x}));open_action.triggered.connect(lambda:(window.showNormal(),window.raise_(),window.activateWindow()));settings_action.triggered.connect(lambda:(window.showNormal(),window.route('settings')));test_action.triggered.connect(lambda:raid({'author':'tray test'}));ack_action.triggered.connect(acknowledge);over_action.triggered.connect(raid_over);quit_action.triggered.connect(lambda:(monitor.stop(),firebase.close(),app.quit()));tray.activated.connect(lambda reason:open_action.trigger() if reason==QSystemTrayIcon.ActivationReason.Trigger else None)
  heartbeat=QTimer();heartbeat.timeout.connect(firebase.heartbeat);heartbeat.start(60_000);firebase.heartbeat()
  if c['screen_monitor'].get('enabled'):monitor.start()
  else:display_state('disconnected');event('Screen monitor is not configured. Open Settings → Screen Monitor.')

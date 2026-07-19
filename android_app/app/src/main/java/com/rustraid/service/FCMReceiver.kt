@@ -9,6 +9,6 @@ class FCMReceiver:FirebaseMessagingService(){
   FirebaseSession.ensureAuthenticated({FirebaseDatabase.getInstance().getReference("app_meta/phone_fcm_token").setValue(token)},{})
  }
  override fun onMessageReceived(message:RemoteMessage){
-  if(message.data["event"]=="raid_alarm") ContextCompat.startForegroundService(this,AlarmService.intent(this))
+  if(message.data["event"]=="raid_alarm") ContextCompat.startForegroundService(this,AlarmService.intent(this,message.data["mode"]=="silent"))
  }
 }
