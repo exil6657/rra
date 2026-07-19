@@ -1,0 +1,5 @@
+from PyQt6.QtWidgets import QWidget,QFormLayout,QLineEdit,QPushButton,QLabel,QVBoxLayout
+class DiscordSettings(QWidget):
+    def __init__(self,config,save):
+        super().__init__(); self.config=config; self.save=save; v=QVBoxLayout(self); v.addWidget(QLabel('Discord bot connection')); v.addWidget(QLabel('Use a Discord application bot token. User tokens and self-bots are not supported.',styleSheet='color:#FF8C00')); f=QFormLayout(); self.token=QLineEdit(config['discord']['bot_token']); self.token.setEchoMode(QLineEdit.EchoMode.Password); self.channel=QLineEdit(config['discord']['channel_id']); self.user=QLineEdit(config['discord']['user_id']); f.addRow('Bot token',self.token); f.addRow('Channel ID',self.channel); f.addRow('Mention user ID (optional)',self.user); v.addLayout(f); b=QPushButton('Save connection settings'); b.clicked.connect(self.commit); v.addWidget(b); v.addStretch()
+    def commit(self): self.save('discord',{'bot_token':self.token.text().strip(),'channel_id':self.channel.text().strip(),'user_id':self.user.text().strip()})

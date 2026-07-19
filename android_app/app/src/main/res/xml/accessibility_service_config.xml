@@ -1,0 +1,2 @@
+<!-- No accessibility service is declared: this application does not automate Snapchat, Discord, or any third-party UI. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android" android:accessibilityEventTypes="" android:accessibilityFeedbackType="feedbackGeneric" android:canRetrieveWindowContent="false" android:notificationTimeout="100" />

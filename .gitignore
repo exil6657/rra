@@ -1,0 +1,9 @@
+laptop_app/logs/*.log
+!laptop_app/logs/.gitkeep
+android_app/app/google-services.json
+android_app/.gradle/
+android_app/app/build/
+laptop_app/dist/
+laptop_app/build/
+__pycache__/
+*.pyc

@@ -1,0 +1,5 @@
+from PyQt6.QtWidgets import QWidget,QVBoxLayout,QLabel,QPlainTextEdit,QLineEdit,QPushButton,QFormLayout
+class IntegrationsSettings(QWidget):
+ def __init__(self,c,save,firebase):
+  super().__init__();self.save=save;self.firebase=firebase;l=QVBoxLayout(self);l.addWidget(QLabel('Firebase Realtime Database'));l.addWidget(QLabel('Service account credentials are stored only in this local config.',styleSheet='color:#FF8C00'));f=QFormLayout();self.url=QLineEdit(c['firebase']['database_url']);self.json=QPlainTextEdit(c['firebase']['service_account_json']);f.addRow('Database URL',self.url);f.addRow('Service account JSON',self.json);l.addLayout(f);b=QPushButton('Save and test Firebase');b.clicked.connect(self.commit);l.addWidget(b);l.addWidget(QLabel('Friend-message automation is deliberately not included. Use your phone’s native share sheet to keep every message user initiated.'));l.addStretch()
+ def commit(self):self.save('firebase',{'database_url':self.url.text().strip(),'service_account_json':self.json.toPlainText().strip()});self.firebase.config=self.firebase.config;self.firebase.connect()

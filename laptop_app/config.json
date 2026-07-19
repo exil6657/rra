@@ -1,0 +1,11 @@
+{
+  "disclaimer_accepted": false,
+  "setup_complete": false,
+  "discord": {"bot_token": "", "channel_id": "", "user_id": "", "channel_name": ""},
+  "firebase": {"service_account_json": "", "database_url": ""},
+  "alarm": {"device_target": "both", "active_preset": "defcon1", "volume": 100, "tts_enabled": true, "screen_flash": true, "flash_color": "#FF2D2D", "custom_sound": "", "custom_tts": "WE ARE BEING RAIDED"},
+  "cooldown": {"duration_minutes": 120, "auto_silence_minutes": 5, "quiet_hours_enabled": false, "quiet_hours_start": "23:00", "quiet_hours_end": "07:00"},
+  "integrations": {"snap_enabled": false, "snap_username": "", "snap_message": "WE ARE BEING RAIDED — GET ON!", "discord_dm_enabled": false, "discord_friend_id": "", "discord_dm_message": "RAID ALERT Get on Rust NOW"},
+  "app": {"start_with_windows": false, "start_minimized": false},
+  "activity": []
+}

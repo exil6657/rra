@@ -1,0 +1,8 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "raid_alarm": { ".validate": "newData.hasChildren(['alarm_active', 'acknowledged'])" },
+    "activity_log": { ".indexOn": ["timestamp"] }
+  }
+}

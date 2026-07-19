@@ -1,0 +1,6 @@
+from PyQt6.QtWidgets import QWidget,QVBoxLayout,QFormLayout,QSpinBox,QCheckBox,QTimeEdit
+from PyQt6.QtCore import QTime
+class CooldownSettings(QWidget):
+ def __init__(self,c,save):
+  super().__init__();self.save=save;d=c['cooldown'];l=QVBoxLayout(self);f=QFormLayout();self.duration=QSpinBox();self.duration.setRange(1,1440);self.duration.setValue(d['duration_minutes']);self.auto=QSpinBox();self.auto.setRange(1,15);self.auto.setValue(d['auto_silence_minutes']);self.quiet=QCheckBox('Quiet hours (force silent alert)');self.quiet.setChecked(d['quiet_hours_enabled']);self.start=QTimeEdit(QTime.fromString(d['quiet_hours_start'],'HH:mm'));self.end=QTimeEdit(QTime.fromString(d['quiet_hours_end'],'HH:mm'));f.addRow('Cooldown minutes',self.duration);f.addRow('Auto-silence minutes',self.auto);f.addRow(self.quiet);f.addRow('Start',self.start);f.addRow('End',self.end);l.addLayout(f);[x.connect(self.commit) for x in (self.duration.valueChanged,self.auto.valueChanged,self.quiet.toggled,self.start.timeChanged,self.end.timeChanged)];l.addStretch()
+ def commit(self):self.save('cooldown',{'duration_minutes':self.duration.value(),'auto_silence_minutes':self.auto.value(),'quiet_hours_enabled':self.quiet.isChecked(),'quiet_hours_start':self.start.time().toString('HH:mm'),'quiet_hours_end':self.end.time().toString('HH:mm')})
