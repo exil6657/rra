@@ -11,7 +11,9 @@ class FirebaseSync(QObject):
     def is_connected(self):
         return self.root is not None
     def _mark_unavailable(self, exc):
-        logging.getLogger(__name__).warning('Firebase operation unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False)
+        logging.getLogger(__name__).warning('Firebase operation unavailable: %s',exc)
+        self.close(); self.root=None; self.db=None
+        self.error.emit(str(exc)); self.connected.emit(False)
     def connect(self):
         try:
             import firebase_admin
