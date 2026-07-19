@@ -50,8 +50,9 @@ Phrase matching requires [Tesseract OCR](https://github.com/tesseract-ocr/tesser
 
 1. Open `android_app` in Android Studio.
 2. Add `android_app/app/google-services.json` for the same Firebase project.
-3. Sync Gradle and select **Build → Build APK(s)**.
-4. Install the APK and grant notifications/vibration permissions. The foreground service watches the Firebase alarm state.
+3. Ensure Android Studio uses JDK 17, then sync Gradle.
+4. Select **Build → Build APK(s)**.
+5. Install the APK and grant notifications/vibration permissions. The foreground service watches the Firebase alarm state.
 
 ## Wake behavior
 
