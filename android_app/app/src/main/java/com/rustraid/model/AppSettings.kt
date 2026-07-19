@@ -1,6 +1,7 @@
 package com.rustraid.model
 data class AppSettings(
  val alertMode:String="critical",
+ val deviceTarget:String="both",
  val cooldownMinutes:Int=120,
  val screenFlash:Boolean=true,
  val vibration:Boolean=true,
