@@ -10,6 +10,7 @@ import com.rustraid.R
 class AlarmService:Service(){
  private var player:MediaPlayer?=null; private var wakeLock:PowerManager.WakeLock?=null
  override fun onStartCommand(i:Intent?,f:Int,id:Int):Int{
+  if(player!=null) return START_NOT_STICKY
   val manager=getSystemService(NotificationManager::class.java);manager.createNotificationChannel(NotificationChannel("raid","Raid alerts",NotificationManager.IMPORTANCE_HIGH))
   val alarmIntent=PendingIntent.getActivity(this,1,Intent(this,AlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   val ackIntent=PendingIntent.getBroadcast(this,2,Intent(this,AcknowledgeReceiver::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
