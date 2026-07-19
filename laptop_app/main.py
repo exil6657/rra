@@ -52,7 +52,7 @@ def main():
  def display_state(state,seconds=0):
   window.dashboard.set_state(state,seconds);tray.setIcon(icons.get(state,icons['disconnected']));tray.setToolTip({'monitoring':'Rust Raid Alarm — monitoring screen region','raid':'Rust Raid Alarm — RAID DETECTED','cooldown':'Rust Raid Alarm — cooldown active'}.get(state,'Rust Raid Alarm — monitor stopped'));ack_action.setVisible(state=='raid');over_action.setVisible(state=='cooldown')
  def event(text):
-  stamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S');record=f'{stamp}  {text}';c['activity'].append(record);c['activity']=c['activity'][-200:];save(c);window.dashboard.add_event(text);firebase.log({'timestamp':stamp,'description':text})
+  stamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S');record=f'{stamp}  {text}';c['activity'].append(record);c['activity']=c['activity'][-200:];save(c);window.dashboard.add_event(text);firebase.log({'timestamp':stamp,'description':text,'type':('raid' if 'Alert detected' in text else 'acknowledged' if 'Acknowledged' in text else 'cooldown' if 'Cooldown' in text else 'error' if 'error' in text.lower() else 'system')})
  def raid(data):
   nonlocal alarm_active
   if cooldown.remaining():event('Cooldown blocked screen trigger');return
