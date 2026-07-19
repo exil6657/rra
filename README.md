@@ -121,6 +121,16 @@ laptop_app\dist\RustRaidAlarm\RustRaidAlarm.exe
 
 Run the EXE from that folder so its bundled assets are available. Runtime configuration, logs, reference images, and pairing QR data are stored under `%APPDATA%\RustRaidAlarm`.
 
+### Run the local readiness check
+
+After installing dependencies, run:
+
+```powershell
+py -3.11 preflight.py
+```
+
+It checks Python, installed desktop dependencies, the Tesseract executable, bundled alarm WAV files, the runtime-data location, and whether Firebase credentials have been configured. Firebase items are informational until you configure phone pairing.
+
 ## 4. First-run laptop setup
 
 1. Accept the local screen-monitor disclosure.
