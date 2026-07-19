@@ -19,8 +19,8 @@ class PairingManager(private val context:Context){
  val info:Flow<PairingInfo> = context.pairingStore.data.map { PairingInfo(it[laptopId]?:"",it[phoneId]?:"",it[phoneName]?:"Android phone",it[pendingSecret]?:"") }
  suspend fun request(code:String,name:String,onResult:(Result<Unit>)->Unit){
   val parts=code.trim().removePrefix("rra://pair/").split('/');if(parts.size!=2||parts.any{it.isBlank()}){onResult(Result.failure(IllegalArgumentException("Use the full pairing code shown by the laptop.")));return}
-  val id=parts[0];val secret=parts[1];val thisPhone=UUID.randomUUID().toString();FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-   FirebaseDatabase.getInstance().getReference("pair_requests").child(id).child(thisPhone).setValue(mapOf("pair_secret" to secret,"fcm_token" to token,"phone_name" to name,"auth_uid" to (FirebaseAuth.getInstance().currentUser?.uid?:""),"requested_at" to System.currentTimeMillis())).addOnSuccessListener {
+  val id=parts[0];val secret=parts[1];val authUid=FirebaseAuth.getInstance().currentUser?.uid?:run{onResult(Result.failure(IllegalStateException("Firebase authentication is still starting. Try again in a moment.")));return};val thisPhone=UUID.randomUUID().toString();FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+   FirebaseDatabase.getInstance().getReference("pair_requests").child(id).child(thisPhone).setValue(mapOf("pair_secret" to secret,"fcm_token" to token,"phone_name" to name,"auth_uid" to authUid,"requested_at" to System.currentTimeMillis())).addOnSuccessListener {
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { context.pairingStore.edit { prefs->prefs[laptopId]=id;prefs[phoneId]=thisPhone;prefs[phoneName]=name;prefs[pendingSecret]=secret };mainHandler.post{onResult(Result.success(Unit))} }
    }.addOnFailureListener{onResult(Result.failure(it))}
   }.addOnFailureListener{onResult(Result.failure(it))}
