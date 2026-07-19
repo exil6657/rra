@@ -121,7 +121,7 @@ class FirebaseSync(QObject):
             from firebase_admin import messaging
             token=self.root.child('app_meta/phone_fcm_token').get()
             if not token: return False
-            notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message),'mode':str(mode),'vibration':str(bool(vibration)).lower(),'flash':str(bool(flash)).lower()},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
+            notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message),'mode':str(mode),'vibration':str(bool(vibration)).lower(),'flash':str(bool(flash)).lower(),'laptop_id':self.config['pairing']['laptop_id']},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
             messaging.send(notice,app=self.app); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('FCM delivery unavailable: %s',exc); self.error.emit(str(exc)); return False

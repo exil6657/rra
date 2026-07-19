@@ -9,7 +9,7 @@ class FCMReceiver:FirebaseMessagingService(){
  override fun onMessageReceived(message:RemoteMessage){
   if(message.data["event"]=="raid_alarm"){
    val silent=message.data["mode"]=="silent";val vibration=message.data["vibration"]?.toBooleanStrictOrNull()?:true;val flash=message.data["flash"]?.toBooleanStrictOrNull()?:true
-   ContextCompat.startForegroundService(this,AlarmService.intent(this,silent,vibration,flash))
+   ContextCompat.startForegroundService(this,AlarmService.intent(this,silent,vibration,flash,message.data["laptop_id"]?:""))
   }
  }
 }

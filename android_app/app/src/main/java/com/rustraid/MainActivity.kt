@@ -13,19 +13,27 @@ import androidx.compose.runtime.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startForegroundService
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.database.ValueEventListener
-import com.rustraid.data.FirebaseRepository
-import com.rustraid.data.FirebaseSession
-import com.rustraid.model.AlertSnapshot
-import com.rustraid.model.AlertState
-import com.rustraid.model.ActivityEntry
-import com.rustraid.model.AppSettings
+import com.rustraid.data.*
+import com.rustraid.model.*
 import com.rustraid.service.FirebaseMonitorService
 import com.rustraid.ui.screens.*
 import com.rustraid.ui.theme.RustRaidTheme
+import kotlinx.coroutines.launch
 class MainActivity:ComponentActivity(){
- private val firebase=FirebaseRepository(); private var listener:ValueEventListener?=null; private var activityListener:ValueEventListener?=null; private var settingsListener:ValueEventListener?=null
- override fun onCreate(b:Bundle?){super.onCreate(b);if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)ActivityCompat.requestPermissions(this,arrayOf(Manifest.permission.POST_NOTIFICATIONS),10);FirebaseSession.ensureAuthenticated({startForegroundService(this,Intent(this,FirebaseMonitorService::class.java))},{});setContent{RustRaidTheme{var tab by remember{mutableIntStateOf(0)};var snapshot by remember{mutableStateOf(AlertSnapshot(AlertState.DISCONNECTED))};var entries by remember{mutableStateOf(emptyList<ActivityEntry>())};var settings by remember{mutableStateOf(AppSettings())};DisposableEffect(Unit){listener=firebase.watchAlarm({snapshot=it},{snapshot=AlertSnapshot(AlertState.DISCONNECTED)});activityListener=firebase.watchActivity{entries=it};settingsListener=firebase.watchSettings{settings=it};onDispose{listener?.let(firebase::removeAlarmListener);activityListener?.let(firebase::removeActivityListener);settingsListener?.let(firebase::removeSettingsListener);listener=null;activityListener=null;settingsListener=null}};Scaffold(bottomBar={NavigationBar{listOf("Dashboard","Log","Settings").forEachIndexed{i,n->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(n)})}}}){p->Surface(modifier=androidx.compose.ui.Modifier.padding(p)){when(tab){0->DashboardScreen(snapshot,{firebase.setMode(it)},{firebase.triggerLocalTest()});1->LogScreen(entries);else->SettingsScreen(settings,{firebase.updateSettings(it)},{requestBatteryExemption()},{requestFullScreenPermission()})}}}}}}
+ private var listener:ValueEventListener?=null;private var activityListener:ValueEventListener?=null;private var settingsListener:ValueEventListener?=null;private var pairingListener:ValueEventListener?=null
+ override fun onCreate(b:Bundle?){super.onCreate(b);if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)ActivityCompat.requestPermissions(this,arrayOf(Manifest.permission.POST_NOTIFICATIONS),10);FirebaseSession.ensureAuthenticated({},{});setContent{RustRaidTheme{val pairingManager=remember{PairingManager(applicationContext)};val pairing by pairingManager.info.collectAsState(initial=PairingInfo());if(!pairing.linked){PairingFlow(pairing,pairingManager)}else LinkedApp(pairing,pairingManager)}}}
+ @Composable private fun PairingFlow(pairing:PairingInfo,manager:PairingManager){
+  var message by remember{mutableStateOf("")};val repository=remember(pairing.laptopId){FirebaseRepository(pairing.laptopId)}
+  DisposableEffect(pairing.laptopId,pairing.phoneId,pairing.pendingSecret){if(pairing.laptopId.isNotBlank()&&pairing.pendingSecret.isNotBlank())pairingListener=repository.watchPairAcceptance(pairing.phoneId){lifecycleScope.launch{manager.confirmLinked();startForegroundService(this@MainActivity,Intent(this@MainActivity,FirebaseMonitorService::class.java))}};onDispose{pairingListener?.let(repository::removePairAcceptanceListener);pairingListener=null}}
+  PairingScreen(pairing.laptopId.isNotBlank()&&pairing.pendingSecret.isNotBlank(),message){code,name->lifecycleScope.launch{manager.request(code,name){result->message=if(result.isSuccess)"Pair request sent. Accept it on the laptop." else result.exceptionOrNull()?.message?:"Pairing failed."}}}
+ }
+ @Composable private fun LinkedApp(pairing:PairingInfo,manager:PairingManager){
+  val firebase=remember(pairing.laptopId){FirebaseRepository(pairing.laptopId)};var tab by remember{mutableIntStateOf(0)};var snapshot by remember{mutableStateOf(AlertSnapshot(AlertState.DISCONNECTED))};var entries by remember{mutableStateOf(emptyList<ActivityEntry>())};var settings by remember{mutableStateOf(AppSettings())}
+  DisposableEffect(pairing.laptopId){listener=firebase.watchAlarm({snapshot=it},{snapshot=AlertSnapshot(AlertState.DISCONNECTED)});activityListener=firebase.watchActivity{entries=it};settingsListener=firebase.watchSettings{settings=it};firebase.heartbeat();onDispose{listener?.let(firebase::removeAlarmListener);activityListener?.let(firebase::removeActivityListener);settingsListener?.let(firebase::removeSettingsListener);listener=null;activityListener=null;settingsListener=null}}
+  Scaffold(bottomBar={NavigationBar{listOf("Dashboard","Log","Settings").forEachIndexed{i,n->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={},label={Text(n)})}}}){padding->Surface(modifier=androidx.compose.ui.Modifier.padding(padding)){when(tab){0->DashboardScreen(snapshot,{firebase.setMode(it)},{firebase.triggerLocalTest()});1->LogScreen(entries);else->SettingsScreen(settings,{firebase.updateSettings(it)},{requestBatteryExemption()},{requestFullScreenPermission()})}}}}
+ }
  private fun requestBatteryExemption(){if(Build.VERSION.SDK_INT>=23)startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:$packageName")))}
  private fun requestFullScreenPermission(){if(Build.VERSION.SDK_INT>=34)startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,Uri.parse("package:$packageName")))}
 }
