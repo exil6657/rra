@@ -55,9 +55,14 @@ def main():
   stamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S');record=f'{stamp}  {text}';c['activity'].append(record);c['activity']=c['activity'][-200:];save(c);window.dashboard.add_event(text);firebase.log({'timestamp':stamp,'description':text,'type':('raid' if 'Alert detected' in text else 'acknowledged' if 'Acknowledged' in text else 'cooldown' if 'Cooldown' in text else 'error' if 'error' in text.lower() else 'system')})
  def raid(data):
   nonlocal alarm_active
-  if cooldown.remaining():event('Cooldown blocked screen trigger');return
+  if cooldown.remaining():
+   event('Cooldown blocked screen trigger');return
   if alarm_active:return
-  alarm_active=True;engine.trigger(force_stealth=cooldown.in_quiet_hours());cooldown.arm_auto_silence();firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':datetime.utcnow().isoformat()+'Z','channel_name':'selected screen region'});display_state('raid');event('Alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
+  triggered_at=datetime.utcnow().isoformat()+'Z';target=c['alarm']['device_target'];alarm_active=True
+  engine.trigger(force_stealth=cooldown.in_quiet_hours());cooldown.arm_auto_silence()
+  firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':triggered_at,'channel_name':'selected screen region','device_target':target})
+  if target in ('phone','both'): firebase.send_phone_alarm(triggered_at,'Visual alert detected')
+  display_state('raid');event('Alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
   nonlocal alarm_active, remote_cooldown_until
   if not alarm_active and not source.startswith('remote') :return

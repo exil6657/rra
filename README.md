@@ -53,6 +53,11 @@ Phrase matching requires [Tesseract OCR](https://github.com/tesseract-ocr/tesser
 3. Sync Gradle and select **Build → Build APK(s)**.
 4. Install the APK and grant notifications/vibration permissions. The foreground service watches the Firebase alarm state.
 
+## Wake behavior
+
+- **Android:** High-priority FCM starts the foreground alarm service, which takes a bounded wake lock and launches the full-screen alarm over the lock screen. This is the intended wake-up path. It requires working Firebase Cloud Messaging, notifications, and the system full-screen alarm permission.
+- **Windows laptop:** A screen-region detector cannot see a visual cue while Windows is fully suspended, because no pixels are being rendered and the process is paused. It can alarm when the display is off/locked while the computer is still running. To wake from actual PC sleep, an external always-on alert source or a Windows wake task is required; the local screen detector itself cannot originate a trigger while asleep.
+
 ## Troubleshooting
 
 - **No detection:** ensure the selected region covers the visible cue, raise its size slightly, verify Tesseract installation for text matching, and try a less-specific phrase.

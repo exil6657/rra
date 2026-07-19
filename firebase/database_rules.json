@@ -3,6 +3,12 @@
     ".read": "auth != null",
     ".write": "auth != null",
     "raid_alarm": { ".validate": "newData.hasChildren(['alarm_active', 'acknowledged'])" },
-    "activity_log": { ".indexOn": ["timestamp"] }
+    "activity_log": { ".indexOn": ["timestamp"] },
+    "app_meta": {
+      "phone_fcm_token": {
+        ".read": false,
+        ".write": "auth != null"
+      }
+    }
   }
 }

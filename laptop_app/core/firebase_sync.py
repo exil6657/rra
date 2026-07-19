@@ -5,7 +5,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 class FirebaseSync(QObject):
     connected=pyqtSignal(bool); remote_acknowledged=pyqtSignal(str); remote_state=pyqtSignal(dict); error=pyqtSignal(str)
     def __init__(self, config):
-        super().__init__(); self.config=config; self.db=None; self._listener=None; self._alarm_state={}; self._last_ack_signature=None
+        super().__init__(); self.config=config; self.db=None; self.app=None; self._listener=None; self._alarm_state={}; self._last_ack_signature=None
     def connect(self):
         try:
             import firebase_admin
@@ -15,7 +15,7 @@ class FirebaseSync(QObject):
             name='rustraid'
             try: app=firebase_admin.get_app(name)
             except ValueError: app=firebase_admin.initialize_app(credentials.Certificate(json.loads(raw)),{'databaseURL':url},name=name)
-            self.db=db.reference('/',app=app); self.connected.emit(True); self._start_listener(); return True
+            self.app=app; self.db=db.reference('/',app=app); self.connected.emit(True); self._start_listener(); return True
         except Exception as exc:
             logging.getLogger(__name__).warning('Firebase unavailable: %s',exc); self.error.emit(str(exc)); self.connected.emit(False); return False
     def _start_listener(self):
@@ -51,6 +51,20 @@ class FirebaseSync(QObject):
         if self.db: self.db.child('raid_alarm').update(values)
     def write_settings(self, values):
         if self.db: self.db.child('settings').update(values)
+    def send_phone_alarm(self, triggered_at, message='Visual alert detected'):
+        """Send a high-priority data-only FCM alert to the registered phone.
+        FCM is needed because a Realtime Database listener alone is not a reliable way to wake a
+        phone from deep idle. Failure leaves the Firebase state as the fallback delivery path.
+        """
+        if not self.db or not self.app: return False
+        try:
+            from firebase_admin import messaging
+            token=self.db.child('app_meta/phone_fcm_token').get()
+            if not token: return False
+            notice=messaging.Message(data={'event':'raid_alarm','triggered_at':str(triggered_at),'message':str(message)},android=messaging.AndroidConfig(priority='high',ttl=3600),token=token)
+            messaging.send(notice,app=self.app); return True
+        except Exception as exc:
+            logging.getLogger(__name__).warning('FCM delivery unavailable: %s',exc); self.error.emit(str(exc)); return False
     def log(self, entry):
         if self.db: self.db.child('activity_log/entries').push(entry)
     def heartbeat(self, device='laptop'):
