@@ -12,6 +12,13 @@ class ScreenMonitor(QThread):
     def valid_region(settings):
         r=settings.get('region',{}); return all(isinstance(r.get(k),int) and r[k]>=(0 if k in ('x','y') else 1) for k in ('x','y','width','height'))
     @staticmethod
+    def save_reference(settings, path):
+        """Capture a selected physical desktop rectangle as a PNG reference."""
+        import cv2, mss, numpy as np
+        if not ScreenMonitor.valid_region(settings): raise ValueError('Select a valid screen region first.')
+        with mss.mss() as grabber: frame=np.array(grabber.grab(settings['region']))
+        if not cv2.imwrite(str(path),frame): raise RuntimeError('Could not save the reference image.')
+    @staticmethod
     def evaluate_once(settings, include_ocr=True):
         """Return local diagnostic data for one frame; used by setup test and monitor loop."""
         import cv2, mss, numpy as np
