@@ -62,6 +62,10 @@ def main():
   if changed:
    cooldown.settings=c['cooldown'];engine.config=c;save(c);event('Applied synchronized settings from Firebase')
  window=MainWindow(c,persist,firebase)
+ def clear_activity():
+  nonlocal c
+  c['activity']=[];save(c);window.log.set_entries([])
+ window.log.clear_requested.connect(clear_activity)
  icons={k:QIcon(str(ROOT/'assets/icons'/v)) for k,v in {'monitoring':'tray_idle.png','raid':'tray_alert.png','cooldown':'tray_cooldown.png','disconnected':'tray_idle.png'}.items()}
  tray=QSystemTrayIcon(icons['monitoring'],app);menu=QMenu();open_action=QAction('Open Dashboard',menu);test_action=QAction('Test Raid',menu);ack_action=QAction('Acknowledge',menu);over_action=QAction('Raid Over',menu);settings_action=QAction('Settings',menu);quit_action=QAction('Quit',menu)
  for a in (open_action,test_action,ack_action,over_action):menu.addAction(a)
@@ -69,7 +73,7 @@ def main():
  def display_state(state,seconds=0):
   window.dashboard.set_state(state,seconds);tray.setIcon(icons.get(state,icons['disconnected']));tray.setToolTip({'monitoring':'Rust Raid Alarm — monitoring screen region','raid':'Rust Raid Alarm — RAID DETECTED','cooldown':'Rust Raid Alarm — cooldown active'}.get(state,'Rust Raid Alarm — monitor stopped'));ack_action.setVisible(state=='raid');over_action.setVisible(state=='cooldown')
  def event(text):
-  stamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S');record=f'{stamp}  {text}';c['activity'].append(record);c['activity']=c['activity'][-200:];save(c);window.dashboard.add_event(text);firebase.log({'timestamp':stamp,'description':text,'type':('raid' if 'Alert detected' in text else 'acknowledged' if 'Acknowledged' in text else 'cooldown' if 'Cooldown' in text else 'error' if 'error' in text.lower() else 'system')})
+  stamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S');record=f'{stamp}  {text}';c['activity'].append(record);c['activity']=c['activity'][-200:];save(c);window.dashboard.add_event(text);window.log.add_record(record);firebase.log({'timestamp':stamp,'description':text,'type':('raid' if 'Alert detected' in text else 'acknowledged' if 'Acknowledged' in text else 'cooldown' if 'Cooldown' in text else 'error' if 'error' in text.lower() else 'system')})
  def raid(data):
   nonlocal alarm_active
   if cooldown.remaining():
