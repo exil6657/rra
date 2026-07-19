@@ -15,5 +15,5 @@ fun RustRaidTheme(amoledBlack: Boolean = false, content: @Composable () -> Unit)
         surface = if (amoledBlack) Color.Black else Card,
         error = Red
     )
-    MaterialTheme(colorScheme = colors, typography = Typography(), content = content)
+    MaterialTheme(colorScheme = colors, typography = RustTypography, content = content)
 }
