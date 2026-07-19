@@ -6,6 +6,8 @@ data class AppSettings(
  val screenFlash:Boolean=true,
  val vibration:Boolean=true,
  val quietHoursEnabled:Boolean=false,
+ val quietHoursStart:String="23:00",
+ val quietHoursEnd:String="07:00",
  val autoSilenceMinutes:Int=5,
  val amoledBlack:Boolean=false
 )
