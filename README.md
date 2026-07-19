@@ -214,7 +214,7 @@ Phone becomes linked
 → alerts route only to that phone
 ```
 
-The laptop Pair Phone page reports the linked phone name. The Android app exposes **Unlink this phone** in Settings. Unlinking clears the local pairing and sends an authenticated unlink request to the laptop.
+The laptop Pair Phone page reports the linked phone name. It can also generate a new pairing code to invalidate an exposed/stale code. Unlinking a phone automatically rotates the pairing secret. The Android app exposes **Unlink this phone** in Settings; unlinking clears local pairing and sends an authenticated unlink request to the laptop.
 
 ## 8. Test the full alarm flow
 
