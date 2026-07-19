@@ -2,27 +2,35 @@
 from pathlib import Path
 from PyQt6.QtCore import Qt, QRect, pyqtSignal
 from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtWidgets import QWidget,QFormLayout,QLineEdit,QPushButton,QLabel,QVBoxLayout,QHBoxLayout,QSpinBox,QDoubleSpinBox,QCheckBox,QRubberBand,QMessageBox,QFileDialog
+from PyQt6.QtWidgets import QWidget,QFormLayout,QLineEdit,QPushButton,QLabel,QVBoxLayout,QHBoxLayout,QSpinBox,QDoubleSpinBox,QCheckBox,QComboBox,QRubberBand,QMessageBox,QFileDialog
 from core.screen_monitor import ScreenProbe, ScreenMonitor
 from core.config import CONFIG_DIR
 class RegionPicker(QWidget):
-    """Transparent virtual-desktop overlay returning physical global coordinates for mss."""
+    """Single-monitor selector that converts Qt logical pixels into mss physical coordinates."""
     selected=pyqtSignal(dict)
-    def __init__(self):
+    def __init__(self, screen_index=0):
         super().__init__(None,Qt.WindowType.FramelessWindowHint|Qt.WindowType.WindowStaysOnTopHint|Qt.WindowType.Tool)
-        screens=QGuiApplication.screens();bounds=screens[0].geometry()
-        for screen in screens[1:]:bounds=bounds.united(screen.geometry())
-        self.setGeometry(bounds);self.setWindowOpacity(.35);self.setStyleSheet('background:#00A8FF;');self.origin_global=None;self.band=QRubberBand(QRubberBand.Shape.Rectangle,self);self.setCursor(Qt.CursorShape.CrossCursor);self.show()
+        screens=QGuiApplication.screens();self.screen_index=max(0,min(screen_index,len(screens)-1));self.screen=screens[self.screen_index];self.logical_geometry=self.screen.geometry()
+        try:
+            import mss
+            monitors=mss.mss().monitors[1:]
+            self.monitor=monitors[min(self.screen_index,len(monitors)-1)]
+        except Exception:
+            self.monitor={'left':self.logical_geometry.x(),'top':self.logical_geometry.y(),'width':self.logical_geometry.width(),'height':self.logical_geometry.height()}
+        self.scale_x=self.monitor['width']/max(1,self.logical_geometry.width());self.scale_y=self.monitor['height']/max(1,self.logical_geometry.height())
+        self.setGeometry(self.logical_geometry);self.setWindowOpacity(.24);self.setStyleSheet('background:#00A8FF;');self.origin=None;self.band=QRubberBand(QRubberBand.Shape.Rectangle,self);self.setCursor(Qt.CursorShape.CrossCursor);self.show()
     def mousePressEvent(self,event):
-        self.origin_global=self.mapToGlobal(event.position().toPoint());local=self.mapFromGlobal(self.origin_global);self.band.setGeometry(QRect(local,local));self.band.show()
-    def mouseMoveEvent(self,event):
-        current=self.mapToGlobal(event.position().toPoint());self.band.setGeometry(QRect(self.mapFromGlobal(self.origin_global),self.mapFromGlobal(current)).normalized())
+        self.origin=event.position().toPoint();self.band.setGeometry(QRect(self.origin,self.origin));self.band.show()
+    def mouseMoveEvent(self,event):self.band.setGeometry(QRect(self.origin,event.position().toPoint()).normalized())
     def mouseReleaseEvent(self,event):
-        end=self.mapToGlobal(event.position().toPoint());rect=QRect(self.origin_global,end).normalized();self.selected.emit({'x':rect.x(),'y':rect.y(),'width':rect.width(),'height':rect.height()});self.close()
+        rect=QRect(self.origin,event.position().toPoint()).normalized()
+        if rect.width()<8 or rect.height()<8:self.close();return
+        self.selected.emit({'x':self.monitor['left']+round(rect.x()*self.scale_x),'y':self.monitor['top']+round(rect.y()*self.scale_y),'width':round(rect.width()*self.scale_x),'height':round(rect.height()*self.scale_y)})
+        self.close()
 class DiscordSettings(QWidget):
     def __init__(self,config,save):
         super().__init__();self.config=config;self.save=save;self.region=config['screen_monitor']['region'];self.template_path=config['screen_monitor'].get('template_path','');root=QVBoxLayout(self);title=QLabel('Local screen alert monitor');title.setStyleSheet('font-size:20px;font-weight:800;');root.addWidget(title);description=QLabel('Choose only the visible alert/banner area. Text matching and reference-image matching are local-only. Configure either trigger, or both for additional coverage.');description.setWordWrap(True);description.setStyleSheet('color:#00A8FF');root.addWidget(description)
-        form=QFormLayout();self.enabled=QCheckBox('Enable local screen monitor');self.enabled.setChecked(config['screen_monitor'].get('enabled',False));root.addWidget(self.enabled);self.text=QLineEdit(config['screen_monitor']['trigger_text']);self.text.setPlaceholderText('Example: your display name or @username');self.interval=QSpinBox();self.interval.setRange(100,5000);self.interval.setValue(config['screen_monitor']['poll_interval_ms']);self.confirm=QSpinBox();self.confirm.setRange(1,10);self.confirm.setValue(config['screen_monitor']['confirm_frames']);self.threshold=QDoubleSpinBox();self.threshold.setRange(.50,.99);self.threshold.setSingleStep(.01);self.threshold.setValue(config['screen_monitor'].get('template_threshold',.88));self.region_label=QLabel(self.describe_region());form.addRow('Trigger phrase (OCR)',self.text);form.addRow('Check interval (ms)',self.interval);form.addRow('Matching frames required',self.confirm);form.addRow('Image-match threshold',self.threshold);form.addRow('Selected region',self.region_label);root.addLayout(form)
+        form=QFormLayout();self.screen_choice=QComboBox();screens=QGuiApplication.screens();[self.screen_choice.addItem(f'Monitor {index+1}: {screen.name() or screen.geometry().getRect()}',index) for index,screen in enumerate(screens)];form.addRow('Monitor to select',self.screen_choice);self.enabled=QCheckBox('Enable local screen monitor');self.enabled.setChecked(config['screen_monitor'].get('enabled',False));root.addWidget(self.enabled);self.text=QLineEdit(config['screen_monitor']['trigger_text']);self.text.setPlaceholderText('Example: your display name or @username');self.interval=QSpinBox();self.interval.setRange(100,5000);self.interval.setValue(config['screen_monitor']['poll_interval_ms']);self.confirm=QSpinBox();self.confirm.setRange(1,10);self.confirm.setValue(config['screen_monitor']['confirm_frames']);self.threshold=QDoubleSpinBox();self.threshold.setRange(.50,.99);self.threshold.setSingleStep(.01);self.threshold.setValue(config['screen_monitor'].get('template_threshold',.88));self.region_label=QLabel(self.describe_region());form.addRow('Trigger phrase (OCR)',self.text);form.addRow('Check interval (ms)',self.interval);form.addRow('Matching frames required',self.confirm);form.addRow('Image-match threshold',self.threshold);form.addRow('Selected region',self.region_label);root.addLayout(form)
         select=QPushButton('Select screen rectangle');select.clicked.connect(self.pick_region);root.addWidget(select)
         template_row=QHBoxLayout();capture=QPushButton('Capture current region as reference image');capture.clicked.connect(self.capture_reference);choose=QPushButton('Choose reference image');choose.clicked.connect(self.choose_reference);clear=QPushButton('Clear reference image');clear.clicked.connect(self.clear_reference);template_row.addWidget(capture);template_row.addWidget(choose);template_row.addWidget(clear);root.addLayout(template_row);self.reference_status=QLabel();self.refresh_reference_status();root.addWidget(self.reference_status)
         diagnostics=QHBoxLayout();check_ocr=QPushButton('Check OCR engine');check_ocr.clicked.connect(self.check_ocr);test=QPushButton('Test selected region now');test.clicked.connect(self.test_region);diagnostics.addWidget(check_ocr);diagnostics.addWidget(test);root.addLayout(diagnostics);self.test_result=QLabel('Run a local test after selecting a region.');self.test_result.setWordWrap(True);root.addWidget(self.test_result)
@@ -30,7 +38,7 @@ class DiscordSettings(QWidget):
     def describe_region(self):return f"x={self.region['x']}, y={self.region['y']}, {self.region['width']}×{self.region['height']}" if self.region.get('width') else 'Not selected'
     def refresh_reference_status(self):
         valid=bool(self.template_path and Path(self.template_path).is_file());self.reference_status.setText('Reference image: configured ✓' if valid else 'Reference image: none — OCR phrase is required to trigger.');self.reference_status.setStyleSheet('color:#00FF88;' if valid else 'color:#A0A0A0;')
-    def pick_region(self):self.picker=RegionPicker();self.picker.selected.connect(self.set_region)
+    def pick_region(self):self.picker=RegionPicker(self.screen_choice.currentData());self.picker.selected.connect(self.set_region)
     def set_region(self,region):self.region=region;self.region_label.setText(self.describe_region())
     def capture_reference(self):
         if not ScreenMonitor.valid_region({'region':self.region}):return QMessageBox.warning(self,'Region required','Select a screen rectangle first.')
