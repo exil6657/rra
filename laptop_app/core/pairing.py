@@ -26,3 +26,9 @@ def manual_pairing_code(config):
     """Readable URL used by QR and manual pairing; it is never written to Firebase."""
     payload=pairing_payload(config)
     return f"rra://pair/{payload['laptop_id']}/{payload['pair_secret']}"
+
+def rotate_pair_secret(config):
+    """Invalidate displayed/pending pairing codes without changing the permanent laptop ID."""
+    config['pairing']['pair_secret']=secrets.token_urlsafe(32)
+    save(config)
+    return config

@@ -77,7 +77,7 @@ class FirebaseSync(QObject):
         """Accept only requests carrying this laptop's locally-held high-entropy secret."""
         if not self.db or self._pair_listener: return
         import secrets
-        laptop_id=self.config['pairing']['laptop_id']; expected=self.config['pairing']['pair_secret']; requests=self.db.child('pair_requests').child(laptop_id)
+        laptop_id=self.config['pairing']['laptop_id']; requests=self.db.child('pair_requests').child(laptop_id)
         def changed(event):
             try:
                 data=event.data if event.path in ('/', '') else {event.path.strip('/'):event.data}
@@ -88,7 +88,7 @@ class FirebaseSync(QObject):
                     requested_at=int(request.get('requested_at',0) or 0)
                     if requested_at and requested_at < int(datetime.now(timezone.utc).timestamp()*1000)-600_000:
                         requests.child(request_id).delete(); continue
-                    if secret and token and auth_uid and secrets.compare_digest(secret,expected):
+                    if secret and token and auth_uid and secrets.compare_digest(secret,self.config['pairing']['pair_secret']):
                         existing=self.config['pairing'].get('paired_phone_id','')
                         if existing and existing!=request_id:
                             # One-phone policy: ignore requests until the user explicitly unlinks.
@@ -134,8 +134,11 @@ class FirebaseSync(QObject):
     def unlink_phone(self):
         if self.root: self.root.child('app_meta').update({'phone_fcm_token':None,'paired_phone_name':None,'paired_phone_id':None,'paired_auth_uid':None})
         self.config['pairing'].update({'paired_phone_id':'','paired_phone_name':''})
-        from core.config import save
-        save(self.config); self.pairing_changed.emit({'linked':False})
+        from core.pairing import rotate_pair_secret
+        rotate_pair_secret(self.config); self.pairing_changed.emit({'linked':False})
+    def rotate_pairing_code(self):
+        from core.pairing import rotate_pair_secret
+        rotate_pair_secret(self.config); self.pairing_changed.emit({'linked':bool(self.config['pairing'].get('paired_phone_id'))})
     def close(self):
         for listener_name in ('_listener','_settings_listener','_meta_listener','_pair_listener','_unlink_listener','_token_listener'):
             listener=getattr(self,listener_name)
