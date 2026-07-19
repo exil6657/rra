@@ -171,20 +171,26 @@ On Windows, runtime configuration is stored under `%APPDATA%\RustRaidAlarm\confi
    android_app/app/google-services.json
    ```
 
-4. Allow Gradle sync to complete.
-5. Select:
+4. Build from Android Studio using:
 
    ```text
    Build → Build Bundle(s) / APK(s) → Build APK(s)
    ```
 
-6. Install the generated debug APK, normally found at:
+   Or use Command Prompt with no Gradle installation required (the included wrapper downloads the matching Gradle version):
+
+   ```bat
+   cd path	orandroid_app
+   build-apk.bat
+   ```
+
+5. Install the generated debug APK, normally found at:
 
    ```text
    android_app/app/build/outputs/apk/debug/app-debug.apk
    ```
 
-7. Open the app on the phone and allow notifications.
+6. Open the app on the phone and allow notifications.
 8. In Android Settings inside Rust Raid Alarm, allow:
 
    - battery-optimization exemption;
