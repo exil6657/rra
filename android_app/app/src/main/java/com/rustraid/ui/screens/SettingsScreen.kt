@@ -12,11 +12,12 @@ import androidx.compose.ui.platform.LocalContext
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.rustraid.model.AppSettings
+import com.rustraid.ui.theme.Muted
 @Composable fun SettingsScreen(settings:AppSettings,onUpdate:(Map<String,Any>)->Unit,onBatteryExemption:()->Unit,onFullScreenPermission:()->Unit,onDndAccess:()->Unit,onNotifications:()->Unit,onUnlink:()->Unit,unlinkStatus:String,customSoundUri:String,onCustomSound:(String)->Unit){
  val context=LocalContext.current;val customPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null){context.contentResolver.takePersistableUriPermission(uri,android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);onCustomSound(uri.toString());onUpdate(mapOf("phone_sound_preset" to "custom"))}};var quietStart by remember(settings.quietHoursStart){mutableStateOf(settings.quietHoursStart)};var quietEnd by remember(settings.quietHoursEnd){mutableStateOf(settings.quietHoursEnd)};var quietError by remember{mutableStateOf("")};var silence by remember(settings.autoSilenceMinutes){mutableFloatStateOf(settings.autoSilenceMinutes.toFloat())}
  Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(14.dp)){
   Text("Settings",style=MaterialTheme.typography.headlineMedium)
-  Text("Alarm target",style=MaterialTheme.typography.titleMedium);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){TargetChip("PC","laptop",settings.deviceTarget,onUpdate);TargetChip("Phone","phone",settings.deviceTarget,onUpdate);TargetChip("Both","both",settings.deviceTarget,onUpdate)}
+  Text("This phone profile",style=MaterialTheme.typography.titleMedium);Text("These settings apply only to this linked phone. The PC controls which linked phones are enabled.",color=Muted)
   Text("Phone alert mode",style=MaterialTheme.typography.titleMedium);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){FilterChip(selected=settings.alertMode=="critical",onClick={onUpdate(mapOf("alert_mode" to "critical"))},label={Text("Full panic")});FilterChip(selected=settings.alertMode=="silent",onClick={onUpdate(mapOf("alert_mode" to "silent"))},label={Text("Silent")})}
   Text("Cooldown",style=MaterialTheme.typography.titleMedium);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf(30,60,120,240).forEach{minutes->FilterChip(selected=settings.cooldownMinutes==minutes,onClick={onUpdate(mapOf("cooldown_duration_minutes" to minutes))},label={Text("${if(minutes<60) "${minutes}m" else "${minutes/60}h"}")})}}
   Text("Auto-silence: ${silence.toInt()} minutes");Slider(value=silence,onValueChange={silence=it},onValueChangeFinished={onUpdate(mapOf("auto_silence_minutes" to silence.toInt()))},valueRange=1f..15f,steps=13)
@@ -26,5 +27,4 @@ import com.rustraid.model.AppSettings
   Text("Connection",style=MaterialTheme.typography.titleMedium);Text("Settings are synchronized through Firebase.");Button(onClick=onBatteryExemption){Text("Exempt from battery saver")};Button(onClick=onFullScreenPermission){Text("Allow full-screen wake alarms")};Button(onClick=onDndAccess){Text("Allow alarm access during Do Not Disturb")};Button(onClick=onNotifications){Text("Allow notifications")};OutlinedButton(onClick=onUnlink){Text("Unlink this phone")};if(unlinkStatus.isNotBlank())Text(unlinkStatus,color=MaterialTheme.colorScheme.error)
  }
 }
-@Composable private fun TargetChip(label:String,value:String,current:String,onUpdate:(Map<String,Any>)->Unit){FilterChip(selected=current==value,onClick={onUpdate(mapOf("device_target" to value))},label={Text(label)})}
 @Composable private fun SettingSwitch(label:String,checked:Boolean,onChange:(Boolean)->Unit){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(label);Switch(checked=checked,onCheckedChange=onChange)}}
