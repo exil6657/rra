@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt, QRect, pyqtSignal
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QWidget,QFormLayout,QLineEdit,QPushButton,QLabel,QVBoxLayout,QHBoxLayout,QSpinBox,QDoubleSpinBox,QCheckBox,QRubberBand,QMessageBox,QFileDialog
 from core.screen_monitor import ScreenProbe, ScreenMonitor
+from core.config import CONFIG_DIR
 class RegionPicker(QWidget):
     """Transparent virtual-desktop overlay returning physical global coordinates for mss."""
     selected=pyqtSignal(dict)
@@ -33,7 +34,7 @@ class DiscordSettings(QWidget):
     def set_region(self,region):self.region=region;self.region_label.setText(self.describe_region())
     def capture_reference(self):
         if not ScreenMonitor.valid_region({'region':self.region}):return QMessageBox.warning(self,'Region required','Select a screen rectangle first.')
-        path=Path(__file__).resolve().parents[2]/'assets'/'reference.png'
+        CONFIG_DIR.mkdir(parents=True,exist_ok=True);path=CONFIG_DIR/'reference.png'
         try:ScreenMonitor.save_reference({'region':self.region},path)
         except Exception as exc:return QMessageBox.warning(self,'Capture failed',str(exc))
         self.template_path=str(path);self.refresh_reference_status();self.commit();QMessageBox.information(self,'Reference saved','The current selected image is saved locally and will be used for image matching.')
@@ -43,7 +44,7 @@ class DiscordSettings(QWidget):
             self.template_path=path;self.refresh_reference_status();self.commit()
     def clear_reference(self):
         if not self.template_path:return
-        local=Path(__file__).resolve().parents[2]/'assets'/'reference.png'
+        local=CONFIG_DIR/'reference.png'
         if Path(self.template_path)==local and local.exists():local.unlink()
         self.template_path='';self.refresh_reference_status();self.commit()
     def check_ocr(self):
