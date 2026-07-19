@@ -5,8 +5,8 @@ from ui.components.status_indicator import StatusIndicator
 class Dashboard(QWidget):
     test_requested=pyqtSignal(); acknowledge_requested=pyqtSignal(); raid_over_requested=pyqtSignal(); target_changed=pyqtSignal(str); preset_changed=pyqtSignal(str)
     def __init__(self,config):
-        super().__init__(); self.config=config; l=QVBoxLayout(self); self.banner=QLabel('🟢 MONITORING — Ready to watch configured channel'); self.banner.setObjectName('title'); self.banner.setStyleSheet('background:#063B25;padding:18px;border-radius:10px'); l.addWidget(self.banner)
-        grid=QGridLayout(); l.addLayout(grid); self.status=StatusIndicator(); self.connection=QLabel('Disconnected'); grid.addWidget(self.card('Discord Status',[self.status,self.connection,QLabel('Monitoring: #'+config['discord']['channel_name']),QLabel('Last ping: Never')]),0,0)
+        super().__init__(); self.config=config; l=QVBoxLayout(self); self.banner=QLabel('🟢 MONITORING — Ready to watch selected screen region'); self.banner.setObjectName('title'); self.banner.setStyleSheet('background:#063B25;padding:18px;border-radius:10px'); l.addWidget(self.banner)
+        grid=QGridLayout(); l.addLayout(grid); self.status=StatusIndicator(); self.connection=QLabel('Disconnected'); grid.addWidget(self.card('Discord Status',[self.status,self.connection,QLabel('Monitoring: selected screen region'),QLabel('Last ping: Never')]),0,0)
         self.alarm_buttons=[]; test=QPushButton('🔴 TEST RAID'); test.setObjectName('danger'); test.clicked.connect(self.test_requested); self.ack=QPushButton('✅ ACKNOWLEDGE'); self.ack.setObjectName('success'); self.ack.clicked.connect(self.acknowledge_requested); self.ack.hide(); self.over=QPushButton('🏁 RAID OVER'); self.over.clicked.connect(self.raid_over_requested); self.over.hide(); grid.addWidget(self.card('Alarm Control',[QLabel('Preset: '+config['alarm']['active_preset'].upper()),test,self.ack,self.over]),0,1)
         quick=[]
         for text,key in [('Laptop Only','laptop'),('Phone Only','phone'),('Both','both')]:
