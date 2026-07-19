@@ -10,6 +10,11 @@ class CooldownManager(QObject):
         return start <= now < end if start <= end else now >= start or now < end
     def start(self, minutes=None):
         self.until=datetime.now()+timedelta(minutes=minutes or self.settings['duration_minutes']); self.timer.start(1000); self._tick()
+    def start_until(self, until):
+        """Use an externally synchronized UTC/ISO expiry, falling back to normal state on expiry."""
+        if isinstance(until,str):
+            until=datetime.fromisoformat(until.replace('Z','+00:00')).astimezone().replace(tzinfo=None)
+        self.until=until; self.timer.start(1000); self._tick()
     def end(self): self.until=None; self.timer.stop(); self.changed.emit('monitoring',0)
     def arm_auto_silence(self): self.silence_timer.start(max(1,self.settings['auto_silence_minutes'])*60_000)
     def disarm_auto_silence(self): self.silence_timer.stop()

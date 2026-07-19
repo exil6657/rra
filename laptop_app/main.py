@@ -34,7 +34,7 @@ def main():
   c['disclaimer_accepted']=True;save(c)
  if not c['setup_complete']:
   if Setup(c).exec()!=QDialog.DialogCode.Accepted:return 0
- c=load(); firebase=FirebaseSync(c);firebase.connect();overlay=AlarmOverlay();engine=AlarmEngine(c,overlay);cooldown=CooldownManager(c['cooldown']);monitor=ScreenMonitor(c['screen_monitor']);alarm_active=False
+ c=load(); firebase=FirebaseSync(c);firebase.connect();overlay=AlarmOverlay();engine=AlarmEngine(c,overlay);cooldown=CooldownManager(c['cooldown']);monitor=ScreenMonitor(c['screen_monitor']);alarm_active=False; remote_cooldown_until=None
  def persist(section,values):
   nonlocal c
   c=update(section,values)
@@ -59,13 +59,24 @@ def main():
   if alarm_active:return
   alarm_active=True;engine.trigger(force_stealth=cooldown.in_quiet_hours());cooldown.arm_auto_silence();firebase.write_alarm({'alarm_active':True,'acknowledged':False,'triggered_at':datetime.utcnow().isoformat()+'Z','channel_name':'selected screen region'});display_state('raid');event('Alert detected: '+data['author']);tray.showMessage('Rust Raid Alarm','Visual trigger detected',QSystemTrayIcon.MessageIcon.Critical,8000)
  def acknowledge(source='laptop'):
-  nonlocal alarm_active
-  if not alarm_active and source!='remote':return
-  alarm_active=False;engine.stop();cooldown.disarm_auto_silence();cooldown.start();firebase.acknowledge(source);display_state('cooldown',cooldown.remaining());event('Acknowledged by '+source)
+  nonlocal alarm_active, remote_cooldown_until
+  if not alarm_active and not source.startswith('remote') :return
+  alarm_active=False;engine.stop();cooldown.disarm_auto_silence()
+  if source.startswith('remote') and remote_cooldown_until:
+   try: cooldown.start_until(remote_cooldown_until)
+   except (ValueError, TypeError): cooldown.start()
+  else: cooldown.start()
+  expiry=cooldown.until.astimezone().isoformat() if cooldown.until else None
+  if not source.startswith('remote'):firebase.acknowledge(source,expiry)
+  display_state('cooldown',cooldown.remaining());event('Acknowledged by '+source)
  def raid_over():
   nonlocal alarm_active
   alarm_active=False;engine.stop();cooldown.disarm_auto_silence();cooldown.end();firebase.write_alarm({'alarm_active':False,'acknowledged':False,'cooldown_until':None});display_state('monitoring');event('Cooldown ended manually')
- monitor.detected.connect(lambda data:raid({'author':'screen monitor ('+data['reason']+')'}));monitor.state_changed.connect(lambda state:display_state('monitoring' if state=='monitoring' else 'disconnected'));monitor.error.connect(lambda message:event('Screen monitor error: '+message));cooldown.changed.connect(display_state);cooldown.expired.connect(lambda:(display_state('monitoring'),event('Monitoring resumed')));cooldown.auto_silence.connect(lambda:acknowledge('auto-silence'));firebase.remote_acknowledged.connect(lambda source:acknowledge(source or 'remote'));firebase.remote_state.connect(lambda data:raid({'author':'remote device'}) if data.get('alarm_active') and not alarm_active else None)
+ def sync_remote(data):
+  nonlocal remote_cooldown_until
+  remote_cooldown_until=data.get('cooldown_until')
+  if data.get('alarm_active') and not alarm_active: raid({'author':'remote device'})
+ monitor.detected.connect(lambda data:raid({'author':'screen monitor ('+data['reason']+')'}));monitor.state_changed.connect(lambda state:display_state('monitoring' if state=='monitoring' else 'disconnected'));monitor.error.connect(lambda message:event('Screen monitor error: '+message));cooldown.changed.connect(display_state);cooldown.expired.connect(lambda:(display_state('monitoring'),event('Monitoring resumed')));cooldown.auto_silence.connect(lambda:acknowledge('auto-silence'));firebase.remote_state.connect(sync_remote);firebase.remote_acknowledged.connect(lambda source:acknowledge('remote:'+str(source or 'device')))
  window.dashboard.test_requested.connect(lambda:raid({'author':'local test'}));window.dashboard.acknowledge_requested.connect(acknowledge);window.dashboard.raid_over_requested.connect(raid_over);window.dashboard.target_changed.connect(lambda x:persist('alarm',{'device_target':x}));window.dashboard.preset_changed.connect(lambda x:persist('alarm',{'active_preset':x}));open_action.triggered.connect(lambda:(window.showNormal(),window.raise_(),window.activateWindow()));settings_action.triggered.connect(lambda:(window.showNormal(),window.route('settings')));test_action.triggered.connect(lambda:raid({'author':'tray test'}));ack_action.triggered.connect(acknowledge);over_action.triggered.connect(raid_over);quit_action.triggered.connect(lambda:(monitor.stop(),firebase.close(),app.quit()));tray.activated.connect(lambda reason:open_action.trigger() if reason==QSystemTrayIcon.ActivationReason.Trigger else None)
  heartbeat=QTimer();heartbeat.timeout.connect(firebase.heartbeat);heartbeat.start(60_000);firebase.heartbeat()
  if c['screen_monitor'].get('enabled'):monitor.start()

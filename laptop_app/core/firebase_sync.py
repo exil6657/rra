@@ -42,4 +42,7 @@ class FirebaseSync(QObject):
         if self.db: self.db.child('activity_log/entries').push(entry)
     def heartbeat(self, device='laptop'):
         if self.db: self.db.child('app_meta').update({f'{device}_last_seen':datetime.now(timezone.utc).isoformat()})
-    def acknowledge(self, source): self.write_alarm({'alarm_active':False,'acknowledged':True,'acknowledged_by':source,'acknowledged_at':datetime.now(timezone.utc).isoformat()})
+    def acknowledge(self, source, cooldown_until=None):
+        payload={'alarm_active':False,'acknowledged':True,'acknowledged_by':source,'acknowledged_at':datetime.now(timezone.utc).isoformat()}
+        if cooldown_until: payload['cooldown_until']=cooldown_until
+        self.write_alarm(payload)
