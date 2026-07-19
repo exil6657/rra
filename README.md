@@ -216,8 +216,8 @@ The system supports **one phone per laptop**. Pairing a replacement phone requir
 ### On the phone
 
 1. Open Rust Raid Alarm.
-2. Tap **Scan laptop QR code** and scan the QR from the laptop screen.
-3. If scanning is unavailable, paste/type the full manual code shown by the laptop.
+2. Copy or type the full manual pairing code shown by the laptop.
+3. The laptop also displays a QR version of the same code; you may use a normal QR reader to copy its text if convenient.
 4. Enter a friendly phone name.
 5. Tap **Request link**.
 6. Keep both apps open while the laptop verifies the request.
