@@ -1,0 +1,70 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "pair_requests": {
+      "$pc_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && (newData.child('auth_uid').val() === auth.uid || (!newData.exists() && data.child('auth_uid').val() === auth.uid))"
+        }
+      }
+    },
+    "unlink_requests": {
+      "$pc_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+        }
+      }
+    },
+    "token_refresh_requests": {
+      "$pc_id": {
+        "$phone_id": {
+          ".read": false,
+          ".write": "auth != null && newData.child('auth_uid').val() === auth.uid"
+        }
+      }
+    },
+    "laptops": {
+      "$pc_id": {
+        "pairing_status": {
+          "$phone_id": {
+            "accepted": {
+              ".read": "auth != null && root.child('laptops').child($pc_id).child('pairing_status').child($phone_id).child('auth_uid').val() === auth.uid"
+            },
+            "auth_uid": {
+              ".read": false
+            }
+          }
+        },
+        "authorized_uids": {
+          ".read": false,
+          ".write": false
+        },
+        "phones": {
+          "$phone_id": {
+            "profile": {
+              ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)",
+              ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+            },
+            "heartbeat": {
+              ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+            },
+            "identity": {
+              ".read": false,
+              ".write": false
+            }
+          }
+        },
+        "raid_alarm": {
+          ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)",
+          ".write": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+        },
+        "activity_log": {
+          ".read": "auth != null && root.child('laptops').child($pc_id).child('authorized_uids').hasChild(auth.uid)"
+        }
+      }
+    }
+  }
+}

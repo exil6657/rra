@@ -1,0 +1,13 @@
+PyQt6>=6.7,<7
+pygame>=2.6,<3
+pyttsx3>=2.98,<3
+firebase-admin>=6.5,<7
+pystray>=0.19,<1
+Pillow>=10.4,<12
+requests>=2.32,<3
+win10toast-click>=0.1.2; platform_system == "Windows"
+mss>=9.0,<11
+opencv-python>=4.10,<5
+pytesseract>=0.3.13,<1
+numpy>=1.26,<3
+qrcode[pil]>=7.4,<9

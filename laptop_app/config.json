@@ -1,0 +1,57 @@
+{
+  "disclaimer_accepted": false,
+  "setup_complete": false,
+  "firebase": {
+    "service_account_json": "",
+    "database_url": ""
+  },
+  "alarm": {
+    "device_target": "both",
+    "active_preset": "defcon1",
+    "volume": 100,
+    "tts_enabled": true,
+    "screen_flash": true,
+    "flash_color": "#FF2D2D",
+    "custom_sound": "",
+    "custom_tts": "WE ARE BEING RAIDED"
+  },
+  "cooldown": {
+    "duration_minutes": 120,
+    "auto_silence_minutes": 5,
+    "quiet_hours_enabled": false,
+    "quiet_hours_start": "23:00",
+    "quiet_hours_end": "07:00"
+  },
+  "app": {
+    "start_with_windows": false,
+    "start_minimized": false,
+    "phone_alert_mode": "critical",
+    "phone_vibration": true,
+    "phone_screen_flash": true,
+    "phone_volume_override": true,
+    "phone_sound_preset": "defcon1"
+  },
+  "activity": [],
+  "screen_monitor": {
+    "enabled": false,
+    "region": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "trigger_text": "",
+    "template_path": "",
+    "template_threshold": 0.88,
+    "poll_interval_ms": 400,
+    "confirm_frames": 2
+  },
+  "pairing": {
+    "laptop_id": "",
+    "pair_secret": "",
+    "paired_phone_id": "",
+    "paired_phone_name": "",
+    "max_phones": 1,
+    "phones": {}
+  }
+}

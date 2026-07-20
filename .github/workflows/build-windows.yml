@@ -1,0 +1,46 @@
+name: Build Windows executable
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'laptop_app/**'
+      - '.github/workflows/build-windows.yml'
+  push:
+    branches:
+      - arena/019f7abc-rra
+    paths:
+      - 'laptop_app/**'
+      - '.github/workflows/build-windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install desktop build dependencies
+        run: python -m pip install --upgrade pip; python -m pip install -r laptop_app/requirements.txt pyinstaller
+
+      - name: Run configuration tests
+        shell: pwsh
+        run: $env:PYTHONPATH='laptop_app'; python -m unittest discover -s laptop_app/tests -v
+
+      - name: Package Rust Raid Alarm
+        shell: cmd
+        run: cd laptop_app && build.bat
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: RustRaidAlarm-Windows
+          path: laptop_app/dist/RustRaidAlarm/
+          if-no-files-found: error
+          retention-days: 14

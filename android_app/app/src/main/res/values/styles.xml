@@ -1,0 +1,1 @@
+<resources><style name="Theme.RustRaid" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#00FF88</item></style></resources>
